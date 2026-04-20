@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EWSS Community Map — New Haven</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{--yb:#00356b;--ybl:#286dc0;--cream:#f5f2eb;--ch:#222;--pbg:rgba(245,242,235,0.97);--aa:#d4a017}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:100vh}
+#map{width:100%;height:100vh;z-index:1}
+
+/* Gate */
+.gate{position:fixed;inset:0;z-index:99999;background:rgba(255,255,255,0.40);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;transition:opacity .4s}
+.gate.hidden{opacity:0;pointer-events:none}
+.gate-card{background:#fff;border-radius:18px;padding:36px 32px;width:440px;max-width:94vw;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.gate-card h1{font-family:'Playfair Display',serif;font-size:22px;color:var(--yb);text-align:center}
+.gate-card .gate-sub{text-align:center;font-size:12px;color:#999;margin:4px 0 18px;letter-spacing:.06em}
+.gate-welcome{font-size:13px;color:#555;line-height:1.7;margin-bottom:16px}
+.gate-terms{background:#f8f7f5;border-radius:10px;padding:14px;max-height:170px;overflow-y:auto;margin-bottom:14px;border:1px solid #eee;font-size:11.5px;color:#666;line-height:1.65}
+.gate-terms h4{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--yb);margin-bottom:6px}
+.gate-terms ul{padding-left:16px;margin:4px 0}
+.gate-check{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;cursor:pointer}
+.gate-check input{margin-top:3px;accent-color:var(--yb);width:15px;height:15px;flex-shrink:0}
+.gate-check label{font-size:12px;color:#666;line-height:1.5;cursor:pointer}
+.gate-pw label{display:block;font-size:10px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.gate-pw input{width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none}
+.gate-pw input:focus{border-color:var(--yb)}
+.gate-err{font-size:11px;color:#e74c3c;min-height:16px;margin:6px 0}
+.gate-go{width:100%;padding:11px;background:var(--yb);color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer}
+.gate-go:disabled{opacity:.35;cursor:not-allowed}
+.gate-foot{text-align:center;margin-top:14px;font-size:9.5px;color:#bbb;line-height:1.5}
+
+.app{display:none}.app.on{display:block}
+
+/* Panel */
+.panel{position:absolute;top:14px;left:14px;z-index:1000;background:var(--pbg);border-radius:14px;width:280px;box-shadow:0 6px 28px rgba(0,0,0,.18);overflow:hidden}
+.panel-hd{background:var(--yb);padding:16px 18px 12px;cursor:pointer;user-select:none}
+.panel-hd h1{font-family:'Playfair Display',serif;font-weight:800;font-size:17px;color:#fff;line-height:1.2}
+.panel-hd .sub{font-size:10px;color:rgba(255,255,255,.55);margin-top:3px;font-weight:500;letter-spacing:.07em;text-transform:uppercase}
+.panel-bd{padding:12px 16px 16px}
+.lsec{margin-bottom:12px}.lsec:last-child{margin-bottom:0}
+.slbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#aaa;margin-bottom:6px}
+.ltog{display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;transition:opacity .15s}
+.ltog:hover{opacity:.7}
+.ltog .li{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.ltog.off .li{opacity:.3;filter:grayscale(1)}
+.ltog.off .ll{color:#bbb;text-decoration:line-through}
+.ll{font-size:12.5px;font-weight:500;color:var(--ch)}
+.lc{font-size:10px;color:#aaa;margin-left:auto}
+.dept-filter{margin-top:4px;padding:0 0 2px 28px}
+.dept-filter select{width:100%;padding:3px 6px;border:1.5px solid #ddd;border-radius:5px;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:500;outline:none;cursor:pointer}
+.admin-login-btn{display:block;width:100%;margin-top:8px;padding:7px;background:none;border:1.5px dashed #ccc;border-radius:8px;color:#aaa;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.08em}
+.admin-login-btn:hover{border-color:var(--yb);color:var(--yb)}
+
+/* Disclaimer footer */
+.disc{padding:10px 16px 14px;border-top:1px solid #eee;font-size:9.5px;color:#aaa;line-height:1.6}
+.disc strong{color:#888;font-weight:600}
+
+/* Admin toolbar */
+.atb{position:absolute;top:14px;right:56px;z-index:1000;background:var(--pbg);border-radius:10px;padding:8px 12px;display:none;align-items:center;gap:6px;box-shadow:0 3px 12px rgba(0,0,0,.12);border:2px solid var(--aa);flex-wrap:wrap}
+.atb.on{display:flex}
+.atb .badge{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--aa);margin-right:2px}
+.ab{padding:5px 10px;border-radius:7px;border:1.5px solid #ddd;background:#fff;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap}
+.ab:hover{border-color:var(--yb);color:var(--yb)}
+.ab.act{background:var(--yb);color:#fff;border-color:var(--yb)}
+.ab.dng{color:#e74c3c;border-color:#e74c3c}.ab.dng:hover{background:#e74c3c;color:#fff}
+
+/* Draw status */
+.dstat{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--yb);color:#fff;border-radius:10px;padding:9px 18px;display:none;font-size:12px;font-weight:500;box-shadow:0 4px 14px rgba(0,0,0,.2);align-items:center;gap:10px}
+.dstat.on{display:flex}
+.dstat button{padding:4px 12px;border-radius:5px;border:none;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;cursor:pointer}
+.dstat .bf{background:#27ae60;color:#fff}.dstat .bu{background:rgba(255,255,255,.2);color:#fff}.dstat .bc{background:rgba(255,255,255,.1);color:#fff}
+.dstat label{font-size:10px;display:flex;align-items:center;gap:4px;cursor:pointer}
+.dstat label input{accent-color:#fff}
+
+/* Forms */
+.fov{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center}
+.fov.on{display:flex}
+.fcard{background:#fff;border-radius:14px;padding:26px 22px;width:360px;max-width:94vw;box-shadow:0 14px 44px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+.fcard h3{font-family:'Playfair Display',serif;font-size:17px;color:var(--yb);margin-bottom:14px}
+.fg{margin-bottom:10px}
+.fg label{display:block;font-size:10px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.fg input,.fg select,.fg textarea{width:100%;padding:7px 9px;border:1.5px solid #ddd;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--yb)}
+.fg textarea{resize:vertical;min-height:50px}
+.frow{display:flex;gap:6px}.frow .fg{flex:1}
+.fcoord{font-size:10px;color:#aaa;margin-bottom:12px}
+.factions{display:flex;gap:6px;margin-top:14px}
+.factions button{flex:1;padding:8px;border-radius:7px;border:none;font-family:'DM Sans',sans-serif;font-weight:600;font-size:12px;cursor:pointer}
+.fp{background:var(--yb);color:#fff}.fs{background:#f0f0f0;color:#666}
+.fdel{background:#fff;color:#e74c3c;border:1.5px solid #e74c3c!important}
+.class-fields{display:none}.class-fields.on{display:block}
+.default-name{display:block}.default-name.hide{display:none}
+
+/* PIN modal */
+.pin-digits{display:flex;gap:7px;justify-content:center;margin-bottom:16px}
+.pin-digits input{width:38px;height:44px;border:2px solid #ddd;border-radius:9px;text-align:center;font-size:18px;font-family:'DM Sans',sans-serif;font-weight:700;color:var(--yb);outline:none}
+.pin-digits input:focus{border-color:var(--yb)}
+
+/* Context menu */
+.ctx{position:absolute;z-index:2000;background:#fff;border-radius:9px;box-shadow:0 3px 16px rgba(0,0,0,.18);padding:4px 0;display:none;min-width:170px}
+.ctx.on{display:block}
+.ctx-i{padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:7px}
+.ctx-i:hover{background:#f5f5f5}
+
+/* Popups */
+.leaflet-popup-content-wrapper{border-radius:10px!important;font-family:'DM Sans',sans-serif!important;box-shadow:0 4px 14px rgba(0,0,0,.16)!important}
+.leaflet-popup-content{margin:10px 14px!important;font-size:12px!important;line-height:1.5!important}
+.leaflet-popup-content strong{font-size:13px;color:var(--yb)}
+.pcat{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin:2px 0 4px}
+.paddr{font-size:11px;color:#999;margin-bottom:3px}
+.pdesc{font-size:12px;color:#444;line-height:1.5}
+.pcontrib{font-size:10px;color:#aaa;margin-top:6px;font-style:italic}
+.pcontrib span{font-style:normal;font-weight:500;color:#888}
+.padmin-row{display:none;position:absolute;top:6px;right:32px;gap:4px}
+.admin-on .padmin-row{display:flex}
+.padmin-btn{background:none;border:none;cursor:pointer;font-size:13px;opacity:.5;padding:2px}
+.padmin-btn:hover{opacity:1}
+.pclass-list{margin:6px 0}
+.pclass-item{font-size:12px;color:var(--ch);padding:2px 0;border-bottom:1px solid #f0f0f0}
+.pclass-item:last-child{border:none}
+.pclass-dept{font-weight:600;color:var(--yb)}
+.pclass-add{display:none;font-size:18px;cursor:pointer;color:var(--yb);border:1.5px solid var(--yb);border-radius:50%;width:22px;height:22px;line-height:18px;text-align:center;margin-top:4px;background:#fff}
+.pclass-add:hover{background:var(--yb);color:#fff}
+.admin-on .pclass-add{display:inline-block}
+.disclaimer-note{font-size:9px;color:#bbb;margin-top:6px;line-height:1.4;font-style:italic}
+
+@media(max-width:600px){.panel{width:240px}.gate-card{padding:24px 20px}}
+</style>
+</head>
+<body>
+
+<!-- GATE -->
+<div class="gate" id="gate">
+<div class="gate-card">
+  <h1>EWSS Community Map</h1>
+  <div class="gate-sub">Eli Whitney Students Society &middot; New Haven</div>
+  <div class="gate-welcome">
+    Welcome! This map is a community resource built by and for Eli Whitney Scholars. It is <strong>not</strong> provided by, affiliated with, or endorsed by Yale University. All information is crowd-sourced by fellow students and may not be completely accurate or up to date.
+  </div>
+  <div class="gate-terms">
+    <h4>Quick Ground Rules</h4>
+    <ul>
+      <li><strong>Keep it private.</strong> Student locations and community data stay within our cohort. No sharing, screenshotting, or forwarding to anyone outside the group.</li>
+      <li><strong>Be respectful.</strong> Do not use any information here to contact people in ways that are unwelcome or outside the spirit of our community.</li>
+      <li><strong>No guarantees.</strong> Class locations, business hours, and other details change. Contributor recommendations reflect personal experiences, not endorsements. When in doubt, verify independently.</li>
+      <li><strong>Access is revocable.</strong> EWSS leadership may revoke access at any time.</li>
+      <li><strong>Access is logged.</strong> Your IP address and access time are recorded for security. Misuse may result in revoked access.</li>
+    </ul>
+  </div>
+  <div class="gate-check">
+    <input type="checkbox" id="gateAgree">
+    <label for="gateAgree">I understand these are community ground rules, and I agree to respect them.</label>
+  </div>
+  <div class="gate-pw">
+    <label>Access Password</label>
+    <input type="password" id="gatePw" placeholder="Enter password" autocomplete="off">
+  </div>
+  <div class="gate-err" id="gateErr"></div>
+  <button class="gate-go" id="gateGo" disabled onclick="tryAccess()">Enter Map</button>
+  <div class="gate-foot">This tool is maintained by EWSS and is not affiliated with Yale University.<br>Unauthorized access attempts are logged.</div>
+</div>
+</div>
+
+<!-- MAP (always visible) -->
+<div id="map"></div>
+
+<!-- APP UI (hidden until auth) -->
+<div class="app" id="app">
+
+<!-- Panel -->
+<div class="panel" id="panel">
+  <div class="panel-hd" onclick="togglePanel()">
+    <h1>EWSS Community Map</h1>
+    <div class="sub">New Haven</div>
+  </div>
+  <div class="panel-bd" id="panelBd">
+    <div class="lsec">
+      <div class="slbl">Housing</div>
+      <div class="ltog" data-layer="students" onclick="toggle(this)"><span class="li">🏠</span><span class="ll">Students</span><span class="lc" id="c-students">0</span></div>
+      <div class="ltog" data-layer="shuttle" onclick="toggle(this)"><span class="li">🚌</span><span class="ll">Shuttle Routes</span><span class="lc" id="c-shuttle">0</span></div>
+      <div class="ltog" data-layer="noise" onclick="toggle(this)"><span class="li">🔊</span><span class="ll">Noise Zones</span></div>
+      <div class="ltog" data-layer="walking" onclick="toggle(this)"><span class="li">🏃</span><span class="ll">Walking / Running</span><span class="lc" id="c-walking">0</span></div>
+    </div>
+    <div class="lsec">
+      <div class="slbl">Campus</div>
+      <div class="ltog" data-layer="classes" onclick="toggle(this)"><span class="li">📖</span><span class="ll">Classes</span><span class="lc" id="c-classes">0</span></div>
+      <div class="dept-filter" id="deptWrap"><select id="deptSel" onchange="filterDept()"><option value="all">All Departments</option></select></div>
+      <div class="ltog" data-layer="res_colleges" onclick="toggle(this)"><span class="li">🏛️</span><span class="ll">Residential Colleges</span><span class="lc" id="c-res_colleges">0</span></div>
+      <div class="ltog" data-layer="study" onclick="toggle(this)"><span class="li">📝</span><span class="ll">Study Locations</span><span class="lc" id="c-study">0</span></div>
+    </div>
+    <div class="lsec">
+      <div class="slbl">Places</div>
+      <div class="ltog" data-layer="food" onclick="toggle(this)"><span class="li">🍽️</span><span class="ll">Restaurants</span><span class="lc" id="c-food">0</span></div>
+      <div class="ltog" data-layer="cafes" onclick="toggle(this)"><span class="li">☕</span><span class="ll">Cafes</span><span class="lc" id="c-cafes">0</span></div>
+      <div class="ltog" data-layer="grocery" onclick="toggle(this)"><span class="li">🛒</span><span class="ll">Grocery Stores</span><span class="lc" id="c-grocery">0</span></div>
+      <div class="ltog" data-layer="bars" onclick="toggle(this)"><span class="li">🍸</span><span class="ll">Bars</span><span class="lc" id="c-bars">0</span></div>
+      <div class="ltog" data-layer="daycare" onclick="toggle(this)"><span class="li">🧒</span><span class="ll">Daycare</span><span class="lc" id="c-daycare">0</span></div>
+      <div class="ltog" data-layer="parks" onclick="toggle(this)"><span class="li">🌳</span><span class="ll">Parks / Playgrounds</span><span class="lc" id="c-parks">0</span></div>
+      <div class="ltog" data-layer="hotels" onclick="toggle(this)"><span class="li">🏨</span><span class="ll">Hotels / Airbnb</span><span class="lc" id="c-hotels">0</span></div>
+    </div>
+    <button class="admin-login-btn" id="adminBtn" onclick="showPin()">🔐 Admin Login</button>
+  </div>
+  <div class="disc">
+    <strong>Community-sourced.</strong> Information may contain inaccuracies or be out of date. Class locations are logged for past semesters and may change. Contributor recommendations reflect personal experiences, not endorsements.<br>
+    <strong>Last Updated:</strong> <span id="lastUpdated">—</span>
+  </div>
+</div>
+
+<!-- Admin toolbar -->
+<div class="atb" id="atb">
+  <span class="badge">✦ Admin</span>
+  <button class="ab" id="btnNoise" onclick="startDraw('noise')">+ Noise Zone</button>
+  <button class="ab" id="btnRoute" onclick="startDraw('route')">+ Shuttle Route</button>
+  <button class="ab" id="btnWalk" onclick="startDraw('walk')">+ Walk/Run Route</button>
+  <button class="ab" onclick="exportData()">Export JSON</button>
+  <button class="ab dng" onclick="logoutAdmin()">Logout</button>
+</div>
+
+<!-- Draw status -->
+<div class="dstat" id="dstat">
+  <span id="dstatTxt"></span>
+  <label id="stopToggle" style="display:none"><input type="checkbox" id="isStop" checked> Bus stop</label>
+  <button class="bu" onclick="undoDraw()">Undo</button>
+  <button class="bf" onclick="finishDraw()">Finish</button>
+  <button class="bc" onclick="cancelDraw()">Cancel</button>
+</div>
+
+<!-- PIN overlay -->
+<div class="fov" id="pinOv">
+<div class="fcard" style="width:300px;text-align:center">
+  <h3>Admin Access</h3>
+  <p style="font-size:12px;color:#888;margin-bottom:16px">Enter 6-digit PIN</p>
+  <div class="pin-digits" id="pinD"></div>
+  <div class="gate-err" id="pinErr"></div>
+  <div class="factions"><button class="fs" onclick="hidePin()">Cancel</button><button class="fp" onclick="submitPin()">Unlock</button></div>
+</div>
+</div>
+
+<!-- Add/Edit marker form -->
+<div class="fov" id="mkOv">
+<div class="fcard">
+  <h3 id="mkTitle">Add Location</h3>
+  <div class="fcoord" id="mkCoord"></div>
+  <div class="fg"><label>Category</label>
+    <select id="mkCat" onchange="toggleClassFields()">
+      <option value="students">Student Housing</option>
+      <option value="classes">Class</option>
+      <option value="res_colleges">Residential College</option>
+      <option value="study">Study Location</option>
+      <option value="food" selected>Restaurant</option>
+      <option value="cafes">Cafe</option>
+      <option value="grocery">Grocery Store</option>
+      <option value="bars">Bar</option>
+      <option value="hotels">Hotel / Airbnb</option>
+      <option value="daycare">Daycare</option>
+      <option value="parks">Park / Playground</option>
+    </select>
+  </div>
+  <div class="default-name" id="nameGrp">
+    <div class="fg"><label>Name</label><input type="text" id="mkName" placeholder="e.g. Sally's Apizza"></div>
+  </div>
+  <div class="class-fields" id="classGrp">
+    <div class="frow">
+      <div class="fg"><label>Department</label><input type="text" id="mkDept" placeholder="CPSC" maxlength="6" style="text-transform:uppercase"></div>
+      <div class="fg" style="flex:0 0 80px"><label>Number</label><input type="text" id="mkNum" placeholder="1100" maxlength="5"></div>
+    </div>
+    <div class="fg"><label>Course Title</label><input type="text" id="mkCTitle" placeholder="e.g. Intro to Computing"></div>
+  </div>
+  <div class="fg"><label>Address</label><input type="text" id="mkAddr" placeholder="e.g. 237 Wooster St, New Haven" onblur="geocodeAddr()"></div>
+  <div class="fg"><label>Description</label><textarea id="mkDesc" placeholder="Short note..."></textarea></div>
+  <div class="fg" id="contribGrp" style="display:none"><label>Shared By (optional)</label><input type="text" id="mkContrib" placeholder="e.g. Dalton Fowler, Political Science"></div>
+  <div class="factions" id="mkActions">
+    <button class="fs" onclick="hideMk()">Cancel</button>
+    <button class="fp" onclick="saveMk()">Save</button>
+  </div>
+  <div class="factions" id="mkEditActions" style="display:none">
+    <button class="fdel" onclick="deleteMk()">Delete</button>
+    <button class="fs" onclick="hideMk()">Cancel</button>
+    <button class="fp" onclick="saveMk()">Save</button>
+  </div>
+</div>
+</div>
+
+<!-- Zone/Route naming form -->
+<div class="fov" id="zoneOv">
+<div class="fcard">
+  <h3 id="zoneTitle">Name This Zone</h3>
+  <div class="fg"><label>Name</label><input type="text" id="zoneName" placeholder="e.g. East Rock Residential"></div>
+  <div class="fg" id="zoneLvl"><label>Noise Level</label><select id="zoneLevel"><option value="quiet">🟢 Quiet</option><option value="medium">🟡 Medium</option><option value="loud">🔴 Loud</option></select></div>
+  <div class="fg" id="zoneClr" style="display:none"><label>Route Color</label><input type="color" id="routeColor" value="#2196F3" style="height:34px;padding:2px"></div>
+  <div class="fg"><label>Description</label><textarea id="zoneDesc" placeholder="Details..."></textarea></div>
+  <div class="factions"><button class="fs" onclick="cancelDraw()">Cancel</button><button class="fp" onclick="saveZone()">Save</button></div>
+</div>
+</div>
+
+<!-- Context menu -->
+<div class="ctx" id="ctx"><div class="ctx-i" onclick="ctxAdd()"><span>📍</span> Add location here</div></div>
+
+</div><!-- end .app -->
+
+<script>
+// =====================================================
+// CONFIG
+// =====================================================
+const VIEWER_PW_HASH='b00eca9d282c8484366c46ca1bfd82aa3af2bdfe8b0eabe2b2e5c801582f9a78';
+const ADMIN_PIN_HASH='35a64a987ea11e209891a2b8540de183c4fab99605a46ec67b7df8db5aee522a';
+const ACCESS_LOG_WEBHOOK='';
+const LAST_UPDATED='April 19, 2026';
+
+// Google Apps Script Web App URL for writing data back to the sheet.
+// Deploy the Apps Script, paste URL here. Leave empty to disable write-back.
+const WRITE_BACK_URL='https://script.google.com/macros/s/AKfycbyyilgZCA2em-BTCNj1cHJCyQpuTBN2WdUNohSMHVhPg-iXcMziHFROG2lpsa964il6/exec';
+
+async function writeBack(payload){
+  if(!WRITE_BACK_URL)return;
+  try{await fetch(WRITE_BACK_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload),mode:'no-cors'})}
+  catch(e){console.warn('[Write-back failed]',e)}
+}
+
+const SHEET_URLS={
+  students:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=686661676&single=true&output=csv',
+  classes:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=276260714&single=true&output=csv',
+  food:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=1473731651&single=true&output=csv',
+  cafes:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=454986307&single=true&output=csv',
+  grocery:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=1614734590&single=true&output=csv',
+  bars:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=1785604039&single=true&output=csv',
+  hotels:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=278892049&single=true&output=csv',
+  daycare:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=675577378&single=true&output=csv',
+  parks:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=1195064644&single=true&output=csv',
+  res_colleges:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=759828791&single=true&output=csv',
+  study:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=1370198680&single=true&output=csv',
+  shuttle_routes:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=600234696&single=true&output=csv',
+  noise_zones:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=717531311&single=true&output=csv',
+  walking_routes:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=272395583&single=true&output=csv',
+};
+
+document.getElementById('lastUpdated').textContent=LAST_UPDATED;
+
+const CATS=['students','classes','food','grocery','bars','daycare','res_colleges','study','cafes','hotels','parks'];
+const LABELS={students:'Housing',classes:'Class',food:'Restaurant',grocery:'Grocery',bars:'Bar',daycare:'Daycare',res_colleges:'Residential College',study:'Study Location',cafes:'Cafe',hotels:'Hotel / Airbnb',parks:'Park / Playground'};
+const EMOJIS={students:'🏠',classes:'📖',food:'🍽️',grocery:'🛒',bars:'🍸',daycare:'🧒',res_colleges:'🏛️',study:'📝',cafes:'☕',hotels:'🏨',parks:'🌳'};
+const CONTRIB_CATS=['food','cafes','bars','hotels'];
+
+const DATA={};CATS.forEach(c=>DATA[c]=[]);
+const SHUTTLES=[],NOISE_ZONES=[],WALKS=[];
+
+// =====================================================
+// GATE
+// =====================================================
+document.getElementById('gateAgree').addEventListener('change',function(){document.getElementById('gateGo').disabled=!this.checked});
+document.getElementById('gatePw').addEventListener('keydown',e=>{if(e.key==='Enter'&&!document.getElementById('gateGo').disabled)tryAccess()});
+
+async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}
+
+async function logAccess(ok){
+  const e={ts:new Date().toISOString(),ok,ua:navigator.userAgent,scr:`${screen.width}x${screen.height}`};
+  try{const r=await fetch('https://api.ipify.org?format=json');e.ip=(await r.json()).ip}catch(_){e.ip='?'}
+  console.log('[ACCESS]',JSON.stringify(e));
+  if(ACCESS_LOG_WEBHOOK)try{await fetch(ACCESS_LOG_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(e),mode:'no-cors'})}catch(_){}
+}
+
+async function tryAccess(){
+  if(!document.getElementById('gateAgree').checked){document.getElementById('gateErr').textContent='Please agree to the ground rules.';return}
+  const pw=document.getElementById('gatePw').value;
+  if(!pw){document.getElementById('gateErr').textContent='Enter the access password.';return}
+  if(await sha256(pw)!==VIEWER_PW_HASH){document.getElementById('gateErr').textContent='Incorrect password. This attempt has been logged.';document.getElementById('gatePw').value='';await logAccess(false);return}
+  await logAccess(true);
+  document.getElementById('gate').classList.add('hidden');
+  document.getElementById('app').classList.add('on');
+  setTimeout(()=>map.invalidateSize(),100);
+}
+
+// =====================================================
+// CSV
+// =====================================================
+function parseCSV(text){
+  const lines=text.split('\n').map(l=>l.trim()).filter(l=>l);
+  if(lines.length<2)return[];
+  const hdr=csvRow(lines[0]);
+  return lines.slice(1).map(l=>{const v=csvRow(l);const o={};hdr.forEach((h,i)=>o[h.trim()]=((v[i]||'').trim()));return o});
+}
+function csvRow(l){const r=[];let c='',q=false;for(let i=0;i<l.length;i++){const ch=l[i];if(q){if(ch==='"'&&l[i+1]==='"'){c+='"';i++}else if(ch==='"')q=false;else c+=ch}else{if(ch==='"')q=true;else if(ch===','){r.push(c);c=''}else c+=ch}}r.push(c);return r}
+function skipRow(r){const v=Object.values(r).join(' ').toLowerCase();return v.includes('latitude')||v.includes('display name')||v.includes('restaurant name')||v.includes('store name')||v.includes('bar name')||v.includes('facility name')||v.includes('course number')||v.includes('route name (same')||v.includes('zone name (same')||v.includes('cafe name')||v.includes('hotel name')||v.includes('park name')||v.includes('location name')||v.includes('college name')}
+
+// =====================================================
+// MAP
+// =====================================================
+const map=L.map('map',{center:[41.3083,-72.9279],zoom:14,zoomControl:false});
+L.control.zoom({position:'topright'}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(map);
+
+// =====================================================
+// ICONS
+// =====================================================
+function mkIcon(cat){return L.divIcon({className:'',html:`<div style="background:#fff;border:2.5px solid #00356b;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 1px 4px rgba(0,0,0,.12);cursor:pointer">${EMOJIS[cat]||'📍'}</div>`,iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-18]})}
+function stopIcon(){return L.divIcon({className:'',html:'<div style="background:#fff;border:2px solid #00356b;width:12px;height:12px;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.15)"></div>',iconSize:[12,12],iconAnchor:[6,6]})}
+function vtxIcon(){return L.divIcon({className:'',html:'<div style="background:#e74c3c;width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>',iconSize:[10,10],iconAnchor:[5,5]})}
+
+// =====================================================
+// LAYERS & REGISTRY
+// =====================================================
+const layers={};
+CATS.forEach(c=>layers[c]=L.layerGroup().addTo(map));
+layers.shuttle=L.layerGroup().addTo(map);
+layers.walking=L.layerGroup().addTo(map);
+layers.noise=L.layerGroup().addTo(map);
+
+let nextId=1;
+const registry={};// id->{marker,cat,item}
+const classMarkers=[];// {marker,dept,id}
+const allDepts=new Set();
+let isAdmin=false;
+
+function popupHtml(cat,item){
+  const lbl=LABELS[cat]||cat;
+  const addr=item.address?`<div class="paddr">${item.address}</div>`:'';
+  const desc=(item.desc&&item.desc!==item.address)?`<div class="pdesc">${item.desc}</div>`:'';
+  const contrib=item.contributor?`<div class="pcontrib">Shared by <span>${item.contributor}</span></div>`:'';
+  const adminBtns=`<div class="padmin-row"><button class="padmin-btn" onclick="editItem(${item._id})" title="Edit">✏️</button></div>`;
+
+  if(cat==='classes'){
+    // Check for building grouping
+    const key=item.lat.toFixed(4)+','+item.lng.toFixed(4);
+    const bldgClasses=DATA.classes.filter(c=>c.lat.toFixed(4)+','+c.lng.toFixed(4)===key);
+    let classList=bldgClasses.map(c=>`<div class="pclass-item"><span class="pclass-dept">${c.dept||''}</span> ${c.num||''} ${c.courseTitle?'— '+c.courseTitle:''}</div>`).join('');
+    const note='<div class="disclaimer-note">Class locations may change between semesters.</div>';
+    return `${adminBtns}<strong>${item.desc||'Building'}</strong><div class="pcat" style="color:#6c8ebf">${lbl}</div>${addr}<div class="pclass-list">${classList}</div><div class="pclass-add" onclick="addClassToBuilding(${item.lat},${item.lng},'${(item.desc||'').replace(/'/g,"\\'")}','${(item.address||'').replace(/'/g,"\\'")}')">+</div>${note}`;
+  }
+
+  return `${adminBtns}<strong>${item.name}</strong><div class="pcat" style="color:#6c8ebf">${lbl}</div>${addr}${desc}${contrib}`;
+}
+
+function addToMap(cat,item){
+  item._id=nextId++;
+  const m=L.marker([item.lat,item.lng],{icon:mkIcon(cat),draggable:false}).bindPopup(popupHtml(cat,item));
+  m.addTo(layers[cat]);
+  registry[item._id]={marker:m,cat,item};
+
+  if(cat==='classes'){
+    const dept=(item.dept||item.name.split(/\s+/)[0]||'').toUpperCase();
+    item.dept=dept;
+    classMarkers.push({marker:m,dept,id:item._id});
+    if(dept){allDepts.add(dept);rebuildDeptFilter()}
+  }
+  return m;
+}
+
+function refreshClassPopups(lat,lng){
+  const key=lat.toFixed(4)+','+lng.toFixed(4);
+  Object.values(registry).forEach(r=>{
+    if(r.cat==='classes'&&r.item.lat.toFixed(4)+','+r.item.lng.toFixed(4)===key){
+      r.marker.setPopupContent(popupHtml('classes',r.item));
+    }
+  });
+}
+
+function rebuildDeptFilter(){
+  const sel=document.getElementById('deptSel');
+  const cur=sel.value;
+  const sorted=Array.from(allDepts).sort();
+  sel.innerHTML='<option value="all">All Departments</option>';
+  sorted.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o)});
+  sel.value=cur||'all';
+}
+
+function filterDept(){
+  const d=document.getElementById('deptSel').value;
+  classMarkers.forEach(cm=>{
+    if(d==='all'||cm.dept===d){if(!layers.classes.hasLayer(cm.marker))layers.classes.addLayer(cm.marker)}
+    else layers.classes.removeLayer(cm.marker);
+  });
+  document.getElementById('c-classes').textContent=d==='all'?DATA.classes.length:classMarkers.filter(cm=>cm.dept===d).length;
+}
+
+function addClassToBuilding(lat,lng,desc,addr){
+  ctxLatLng={lat,lng};
+  document.getElementById('mkCoord').textContent=`📌 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  document.getElementById('mkCat').value='classes';
+  toggleClassFields();
+  document.getElementById('mkAddr').value=addr;
+  document.getElementById('mkDesc').value=desc;
+  document.getElementById('mkTitle').textContent='Add Class to Building';
+  document.getElementById('mkActions').style.display='';
+  document.getElementById('mkEditActions').style.display='none';
+  editingId=null;
+  document.getElementById('mkOv').classList.add('on');
+  document.getElementById('mkDept').focus();
+}
+
+// =====================================================
+// DATA LOADING
+// =====================================================
+async function fetchSheet(url){try{const r=await fetch(url);if(!r.ok)throw 0;return parseCSV(await r.text())}catch(_){return[]}}
+
+async function loadAll(){
+  await Promise.all(CATS.map(async cat=>{
+    if(!SHEET_URLS[cat])return;
+    const rows=await fetchSheet(SHEET_URLS[cat]);
+    rows.forEach(row=>{
+      if(skipRow(row))return;
+      const lat=parseFloat(row.lat),lng=parseFloat(row.lng);
+      if(isNaN(lat)||isNaN(lng))return;
+      const item={name:row.name||'',lat,lng,desc:row.desc||'',address:row.address||'',subject:row.subject||'',contributor:row.contributor||''};
+      if(cat==='classes'){item.dept=(row.name||'').split(/\s+/)[0].toUpperCase();const parts=(row.name||'').match(/^(\S+)\s+(\S+)/);if(parts){item.dept=parts[1].toUpperCase();item.num=parts[2]}item.courseTitle=(row.name||'').replace(/^\S+\s+\S+\s*[—–-]?\s*/,'');}
+      DATA[cat].push(item);
+      addToMap(cat,item);
+    });
+    const c=document.getElementById('c-'+cat);if(c)c.textContent=DATA[cat].length;
+  }));
+
+  // Shuttle routes
+  const sr=await fetchSheet(SHEET_URLS.shuttle_routes);
+  const rg={};
+  sr.forEach(row=>{if(skipRow(row))return;const n=row.route_name,lat=parseFloat(row.stop_lat),lng=parseFloat(row.stop_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!rg[n])rg[n]={name:n,color:row.color||'#2196F3',desc:row.desc||'',stops:[]};if(row.color)rg[n].color=row.color;if(row.desc)rg[n].desc=row.desc;const isStop=row.is_stop!==undefined?(row.is_stop.toLowerCase()!=='no'&&row.is_stop!=='0'&&row.is_stop.toLowerCase()!=='false'):true;rg[n].stops.push({order:parseInt(row.stop_order)||0,lat,lng,isStop})});
+  Object.values(rg).forEach(route=>{route.stops.sort((a,b)=>a.order-b.order);const coords=route.stops.map(s=>[s.lat,s.lng]);SHUTTLES.push(route);L.polyline(coords,{color:route.color,weight:4,opacity:.8,dashArray:'8 6'}).bindPopup(`<strong>${route.name}</strong><div class="pcat" style="color:#8b6bae">Shuttle Route</div><div>${route.desc}</div>`).addTo(layers.shuttle);route.stops.forEach(s=>{if(s.isStop)L.marker([s.lat,s.lng],{icon:stopIcon()}).addTo(layers.shuttle)})});
+  document.getElementById('c-shuttle').textContent=SHUTTLES.length;
+
+  // Noise zones
+  const nz=await fetchSheet(SHEET_URLS.noise_zones);
+  const zg={};
+  nz.forEach(row=>{if(skipRow(row))return;const n=row.zone_name,lat=parseFloat(row.vertex_lat),lng=parseFloat(row.vertex_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!zg[n])zg[n]={name:n,level:row.level||'medium',desc:row.desc||'',verts:[]};if(row.level)zg[n].level=row.level;if(row.desc)zg[n].desc=row.desc;zg[n].verts.push({order:parseInt(row.vertex_order)||0,lat,lng})});
+  const lc={quiet:'#27ae60',medium:'#f1c40f',loud:'#e74c3c'};
+  Object.values(zg).forEach(z=>{z.verts.sort((a,b)=>a.order-b.order);const coords=z.verts.map(v=>[v.lat,v.lng]);const col=lc[z.level]||'#f1c40f';NOISE_ZONES.push({...z,color:col,coords});L.polygon(coords,{color:col,weight:2,opacity:.6,fillColor:col,fillOpacity:.18}).bindPopup(`<strong>${z.name}</strong><div class="pcat" style="color:${col}">${z.level.charAt(0).toUpperCase()+z.level.slice(1)} Noise Zone</div><div>${z.desc}</div>`).addTo(layers.noise)});
+
+  // Walking routes
+  if(SHEET_URLS.walking_routes){
+    const wr=await fetchSheet(SHEET_URLS.walking_routes);
+    const wg={};
+    wr.forEach(row=>{if(skipRow(row))return;const n=row.route_name,lat=parseFloat(row.point_lat||row.stop_lat),lng=parseFloat(row.point_lng||row.stop_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!wg[n])wg[n]={name:n,color:row.color||'#27ae60',desc:row.desc||'',pts:[]};if(row.color)wg[n].color=row.color;if(row.desc)wg[n].desc=row.desc;wg[n].pts.push({order:parseInt(row.point_order||row.stop_order)||0,lat,lng})});
+    Object.values(wg).forEach(w=>{w.pts.sort((a,b)=>a.order-b.order);const coords=w.pts.map(p=>[p.lat,p.lng]);WALKS.push({...w,coords});L.polyline(coords,{color:w.color,weight:3,opacity:.7}).bindPopup(`<strong>${w.name}</strong><div class="pcat" style="color:${w.color}">Walking / Running Route</div><div>${w.desc}</div>`).addTo(layers.walking)});
+    document.getElementById('c-walking').textContent=WALKS.length;
+  }
+
+  // Admin class for popups
+  if(isAdmin)document.body.classList.add('admin-on');
+  console.log('[Loaded]',Object.fromEntries(CATS.map(c=>[c,DATA[c].length])));
+}
+loadAll();
+
+// =====================================================
+// TOGGLES
+// =====================================================
+function toggle(el){const l=el.dataset.layer;el.classList.toggle('off')?map.removeLayer(layers[l]):map.addLayer(layers[l])}
+let panelOpen=true;
+function togglePanel(){panelOpen=!panelOpen;document.getElementById('panelBd').style.display=panelOpen?'block':'none'}
+
+// =====================================================
+// ADMIN AUTH
+// =====================================================
+function showPin(){
+  document.getElementById('pinOv').classList.add('on');
+  const d=document.getElementById('pinD');
+  d.innerHTML='';
+  for(let i=0;i<6;i++){const inp=document.createElement('input');inp.type='text';inp.maxLength=1;inp.inputMode='numeric';inp.autocomplete='off';d.appendChild(inp)}
+  const inps=d.querySelectorAll('input');
+  inps.forEach((inp,i)=>{inp.addEventListener('input',()=>{inp.value=inp.value.replace(/\D/g,'');if(inp.value&&i<5)inps[i+1].focus()});inp.addEventListener('keydown',e=>{if(e.key==='Backspace'&&!inp.value&&i>0)inps[i-1].focus();if(e.key==='Enter')submitPin()})});
+  inps[0].focus();
+  document.getElementById('pinErr').textContent='';
+}
+function hidePin(){document.getElementById('pinOv').classList.remove('on')}
+async function submitPin(){
+  const pin=Array.from(document.getElementById('pinD').querySelectorAll('input')).map(i=>i.value).join('');
+  if(await sha256(pin)===ADMIN_PIN_HASH){
+    isAdmin=true;hidePin();
+    document.getElementById('atb').classList.add('on');
+    document.body.classList.add('admin-on');
+    const b=document.getElementById('adminBtn');b.textContent='✦ Admin Mode Active';b.style.borderColor='#d4a017';b.style.color='#d4a017';b.onclick=null;
+  }else{document.getElementById('pinErr').textContent='Incorrect PIN.';document.getElementById('pinD').querySelectorAll('input').forEach(i=>i.value='');document.getElementById('pinD').querySelector('input').focus()}
+}
+function logoutAdmin(){isAdmin=false;cancelDraw();document.getElementById('atb').classList.remove('on');document.body.classList.remove('admin-on');const b=document.getElementById('adminBtn');b.textContent='🔐 Admin Login';b.style.borderColor='#ccc';b.style.color='#aaa';b.onclick=showPin}
+
+// =====================================================
+// CONTEXT MENU
+// =====================================================
+let ctxLatLng=null;
+map.on('contextmenu',e=>{if(!isAdmin||drawMode!=='idle')return;e.originalEvent.preventDefault();ctxLatLng=e.latlng;const m=document.getElementById('ctx');m.style.left=e.originalEvent.pageX+'px';m.style.top=e.originalEvent.pageY+'px';m.classList.add('on')});
+document.addEventListener('click',()=>document.getElementById('ctx').classList.remove('on'));
+
+function ctxAdd(){
+  document.getElementById('ctx').classList.remove('on');
+  openMkForm(ctxLatLng);
+}
+
+// =====================================================
+// ADD / EDIT MARKER FORM
+// =====================================================
+let editingId=null;
+
+function openMkForm(ll,editId){
+  editingId=editId||null;
+  const item=editId?registry[editId].item:null;
+  const cat=editId?registry[editId].cat:'food';
+
+  document.getElementById('mkTitle').textContent=editId?'Edit Location':'Add Location';
+  document.getElementById('mkCoord').textContent=`📌 ${(item?item.lat:ll.lat).toFixed(5)}, ${(item?item.lng:ll.lng).toFixed(5)}`;
+  document.getElementById('mkCat').value=cat;
+  document.getElementById('mkCat').disabled=!!editId;
+  toggleClassFields();
+
+  if(editId&&cat==='classes'){
+    document.getElementById('mkDept').value=item.dept||'';
+    document.getElementById('mkNum').value=item.num||'';
+    document.getElementById('mkCTitle').value=item.courseTitle||'';
+  }else{
+    document.getElementById('mkName').value=item?item.name:'';
+    document.getElementById('mkDept').value='';document.getElementById('mkNum').value='';document.getElementById('mkCTitle').value='';
+  }
+  document.getElementById('mkAddr').value=item?item.address:'';
+  document.getElementById('mkDesc').value=item?item.desc:'';
+  document.getElementById('mkContrib').value=item?item.contributor||'':'';
+
+  document.getElementById('mkActions').style.display=editId?'none':'';
+  document.getElementById('mkEditActions').style.display=editId?'':'none';
+  document.getElementById('mkOv').classList.add('on');
+
+  if(cat==='classes')document.getElementById('mkDept').focus();
+  else document.getElementById('mkName').focus();
+
+  if(!editId)ctxLatLng=ll;
+}
+function hideMk(){document.getElementById('mkOv').classList.remove('on');document.getElementById('mkCat').disabled=false;editingId=null}
+
+function toggleClassFields(){
+  const isC=document.getElementById('mkCat').value==='classes';
+  document.getElementById('nameGrp').classList.toggle('hide',isC);
+  document.getElementById('classGrp').classList.toggle('on',isC);
+  document.getElementById('contribGrp').style.display=CONTRIB_CATS.includes(document.getElementById('mkCat').value)?'':'none';
+}
+
+async function geocodeAddr(){
+  const addr=document.getElementById('mkAddr').value.trim();
+  if(!addr||!ctxLatLng)return;
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr+', New Haven, CT')}&limit=1`);
+    const d=await r.json();
+    if(d.length){ctxLatLng={lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)};document.getElementById('mkCoord').textContent=`📌 ${ctxLatLng.lat.toFixed(5)}, ${ctxLatLng.lng.toFixed(5)} (geocoded)`}
+  }catch(_){}
+}
+
+function saveMk(){
+  const cat=document.getElementById('mkCat').value;
+  let name,dept,num,courseTitle;
+
+  if(cat==='classes'){
+    dept=document.getElementById('mkDept').value.trim().toUpperCase();
+    num=document.getElementById('mkNum').value.trim();
+    courseTitle=document.getElementById('mkCTitle').value.trim();
+    if(!dept||!num){if(!dept)document.getElementById('mkDept').style.borderColor='#e74c3c';if(!num)document.getElementById('mkNum').style.borderColor='#e74c3c';return}
+    name=`${dept} ${num}`+(courseTitle?` — ${courseTitle}`:'');
+  }else{
+    name=document.getElementById('mkName').value.trim();
+    if(!name){document.getElementById('mkName').style.borderColor='#e74c3c';return}
+  }
+
+  const addr=document.getElementById('mkAddr').value.trim();
+  const desc=document.getElementById('mkDesc').value.trim();
+  const contrib=document.getElementById('mkContrib').value.trim();
+
+  if(editingId){
+    const r=registry[editingId];
+    const oldName=r.item.name;
+    r.item.name=name;r.item.address=addr;r.item.desc=desc;r.item.contributor=contrib;
+    if(cat==='classes'){r.item.dept=dept;r.item.num=num;r.item.courseTitle=courseTitle}
+    r.marker.setPopupContent(popupHtml(cat,r.item));
+    if(cat==='classes')refreshClassPopups(r.item.lat,r.item.lng);
+    writeBack({action:'update_marker',category:cat,oldName,item:{name,lat:r.item.lat,lng:r.item.lng,desc,address:addr,contributor:contrib,subject:r.item.subject||''}});
+  }else{
+    const item={name,lat:ctxLatLng.lat,lng:ctxLatLng.lng,desc,address:addr,contributor:contrib,subject:''};
+    if(cat==='classes'){item.dept=dept;item.num=num;item.courseTitle=courseTitle}
+    DATA[cat].push(item);
+    const m=addToMap(cat,item);
+    if(isAdmin)m.dragging.enable();
+    m.on('dragend',function(){const p=m.getLatLng();item.lat=p.lat;item.lng=p.lng});
+    if(cat==='classes')refreshClassPopups(item.lat,item.lng);
+    const c=document.getElementById('c-'+cat);if(c)c.textContent=DATA[cat].length;
+    writeBack({action:'add_marker',category:cat,item:{name,lat:item.lat,lng:item.lng,desc,address:addr,contributor:contrib,subject:item.subject||''}});
+  }
+  hideMk();
+}
+
+function editItem(id){
+  const r=registry[id];if(!r)return;
+  map.closePopup();
+  openMkForm(null,id);
+}
+
+function deleteMk(){
+  if(!editingId)return;
+  if(!confirm('Delete this location?'))return;
+  const r=registry[editingId];
+  layers[r.cat].removeLayer(r.marker);
+  const idx=DATA[r.cat].indexOf(r.item);if(idx>-1)DATA[r.cat].splice(idx,1);
+  if(r.cat==='classes'){const ci=classMarkers.findIndex(cm=>cm.id===editingId);if(ci>-1)classMarkers.splice(ci,1);refreshClassPopups(r.item.lat,r.item.lng)}
+  writeBack({action:'delete_marker',category:r.cat,name:r.item.name});
+  delete registry[editingId];
+  const c=document.getElementById('c-'+r.cat);if(c)c.textContent=DATA[r.cat].length;
+  hideMk();
+}
+
+// =====================================================
+// DRAWING ENGINE
+// =====================================================
+let drawMode='idle';// idle|noise|route|walk
+let drawPoints=[];// [{lat,lng,isStop}]
+let drawPreview=L.layerGroup().addTo(map);
+let drawMarkers=[];
+
+function startDraw(mode){
+  if(drawMode!=='idle')cancelDraw();
+  drawMode=mode;drawPoints=[];
+  document.getElementById('btn'+(mode==='noise'?'Noise':mode==='route'?'Route':'Walk')).classList.add('act');
+  document.getElementById('stopToggle').style.display=mode==='route'?'':'none';
+  document.getElementById('isStop').checked=true;
+  setDstat(mode==='noise'?'Click to place zone vertices (min 3).':'Click to place points along route.');
+  map.getContainer().style.cursor='crosshair';
+}
+
+function cancelDraw(){
+  drawMode='idle';drawPoints=[];drawMarkers=[];drawPreview.clearLayers();hideDstat();
+  map.getContainer().style.cursor='';
+  ['btnNoise','btnRoute','btnWalk'].forEach(b=>document.getElementById(b).classList.remove('act'));
+  document.getElementById('zoneOv').classList.remove('on');
+}
+
+function setDstat(t){document.getElementById('dstatTxt').textContent=t;document.getElementById('dstat').classList.add('on')}
+function hideDstat(){document.getElementById('dstat').classList.remove('on')}
+
+function undoDraw(){
+  if(!drawPoints.length)return;drawPoints.pop();
+  if(drawMarkers.length)drawPreview.removeLayer(drawMarkers.pop());
+  redrawPreview();updateDstat();
+}
+
+function updateDstat(){
+  if(drawMode==='noise')setDstat(`${drawPoints.length} vertices. ${drawPoints.length<3?'Need 3+.':'Finish when done.'}`);
+  else setDstat(`${drawPoints.length} points. ${drawPoints.length<2?'Need 2+.':'Finish when done.'}`);
+}
+
+function redrawPreview(){
+  drawPreview.eachLayer(l=>{if(!(l instanceof L.Marker))drawPreview.removeLayer(l)});
+  if(drawPoints.length<2)return;
+  const coords=drawPoints.map(p=>[p.lat,p.lng]);
+  if(drawMode==='noise')L.polygon(coords,{color:'#e74c3c',weight:2,dashArray:'6 4',fillOpacity:.1}).addTo(drawPreview);
+  else L.polyline(coords,{color:drawMode==='walk'?'#27ae60':'#2196F3',weight:3,dashArray:'6 4'}).addTo(drawPreview);
+}
+
+map.on('click',e=>{
+  if(drawMode==='idle')return;
+  const isStop=drawMode==='route'?document.getElementById('isStop').checked:false;
+  drawPoints.push({lat:e.latlng.lat,lng:e.latlng.lng,isStop});
+  let icon;
+  if(drawMode==='noise')icon=vtxIcon();
+  else if(drawMode==='route'&&isStop)icon=stopIcon();
+  else if(drawMode==='route')icon=L.divIcon({className:'',html:'<div style="background:rgba(0,53,107,.3);width:8px;height:8px;border-radius:50%"></div>',iconSize:[8,8],iconAnchor:[4,4]});
+  else icon=L.divIcon({className:'',html:'<div style="background:rgba(39,174,96,.3);width:8px;height:8px;border-radius:50%"></div>',iconSize:[8,8],iconAnchor:[4,4]});
+  drawMarkers.push(L.marker(e.latlng,{icon}).addTo(drawPreview));
+  redrawPreview();updateDstat();
+});
+
+function finishDraw(){
+  if(drawMode==='noise'&&drawPoints.length<3)return;
+  if(drawMode!=='noise'&&drawPoints.length<2)return;
+  const ov=document.getElementById('zoneOv');
+  if(drawMode==='noise'){document.getElementById('zoneTitle').textContent='Name This Noise Zone';document.getElementById('zoneLvl').style.display='';document.getElementById('zoneClr').style.display='none'}
+  else{document.getElementById('zoneTitle').textContent='Name This Route';document.getElementById('zoneLvl').style.display='none';document.getElementById('zoneClr').style.display=''}
+  document.getElementById('zoneName').value='';document.getElementById('zoneDesc').value='';
+  ov.classList.add('on');document.getElementById('zoneName').focus();
+}
+
+function saveZone(){
+  const name=document.getElementById('zoneName').value.trim();if(!name){document.getElementById('zoneName').style.borderColor='#e74c3c';return}
+  const desc=document.getElementById('zoneDesc').value.trim();
+
+  if(drawMode==='noise'){
+    const level=document.getElementById('zoneLevel').value;
+    const cm={quiet:'#27ae60',medium:'#f1c40f',loud:'#e74c3c'};const col=cm[level];
+    const coords=drawPoints.map(p=>[p.lat,p.lng]);
+    NOISE_ZONES.push({name,level,color:col,desc,coords});
+    L.polygon(coords,{color:col,weight:2,opacity:.6,fillColor:col,fillOpacity:.18}).bindPopup(`<strong>${name}</strong><div class="pcat" style="color:${col}">${level.charAt(0).toUpperCase()+level.slice(1)} Noise Zone</div><div>${desc}</div>`).addTo(layers.noise);
+    writeBack({action:'add_zone',zone:{name,level,desc,coords}});
+  }else if(drawMode==='route'){
+    const col=document.getElementById('routeColor').value;
+    const coords=drawPoints.map(p=>[p.lat,p.lng]);
+    const route={name,color:col,desc,coords,stops:[...drawPoints]};
+    SHUTTLES.push(route);
+    L.polyline(coords,{color:col,weight:4,opacity:.8,dashArray:'8 6'}).bindPopup(`<strong>${name}</strong><div class="pcat" style="color:#8b6bae">Shuttle Route</div><div>${desc}</div>`).addTo(layers.shuttle);
+    drawPoints.forEach(p=>{if(p.isStop)L.marker([p.lat,p.lng],{icon:stopIcon()}).addTo(layers.shuttle)});
+    document.getElementById('c-shuttle').textContent=SHUTTLES.length;
+    writeBack({action:'add_route',route:{name,color:col,desc,stops:drawPoints.map(p=>({lat:p.lat,lng:p.lng,isStop:p.isStop}))}});
+  }else{
+    const col=document.getElementById('routeColor').value;
+    const coords=drawPoints.map(p=>[p.lat,p.lng]);
+    WALKS.push({name,color:col,desc,coords});
+    L.polyline(coords,{color:col,weight:3,opacity:.7}).bindPopup(`<strong>${name}</strong><div class="pcat" style="color:${col}">Walking / Running Route</div><div>${desc}</div>`).addTo(layers.walking);
+    document.getElementById('c-walking').textContent=WALKS.length;
+    writeBack({action:'add_walk',route:{name,color:col,desc,stops:drawPoints.map(p=>({lat:p.lat,lng:p.lng}))}});
+  }
+  document.getElementById('zoneOv').classList.remove('on');cancelDraw();
+}
+
+// =====================================================
+// EXPORT
+// =====================================================
+function exportData(){
+  const o={markers:DATA,shuttles:SHUTTLES,noiseZones:NOISE_ZONES,walks:WALKS};
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='ewss_map_data.json';a.click();
+}
+
+// Escape key
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){hidePin();hideMk();if(drawMode!=='idle')cancelDraw();document.getElementById('zoneOv').classList.remove('on')}});
+</script>
+</body>
+</html>
