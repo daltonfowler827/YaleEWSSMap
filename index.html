@@ -39,6 +39,7 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
 /* Panel */
 .panel{position:absolute;top:14px;left:14px;z-index:1000;background:var(--pbg);border-radius:14px;width:280px;box-shadow:0 6px 28px rgba(0,0,0,.18);overflow:hidden}
 .panel-hd{background:var(--yb);padding:16px 18px 12px;cursor:pointer;user-select:none}
+.mob-handle{display:none;width:36px;height:4px;background:rgba(255,255,255,.3);border-radius:2px;margin:0 auto 8px}
 .panel-hd h1{font-family:'Playfair Display',serif;font-weight:800;font-size:17px;color:#fff;line-height:1.2}
 .panel-hd .sub{font-size:10px;color:rgba(255,255,255,.55);margin-top:3px;font-weight:500;letter-spacing:.07em;text-transform:uppercase}
 .panel-bd{padding:12px 16px 16px}
@@ -135,7 +136,56 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
 .admin-on .pclass-add{display:inline-block}
 .disclaimer-note{font-size:9px;color:#bbb;margin-top:6px;line-height:1.4;font-style:italic}
 
-@media(max-width:600px){.panel{width:240px}.gate-card{padding:24px 20px}}
+/* Mobile FAB toggle */
+.panel-fab{display:none;position:absolute;bottom:24px;left:14px;z-index:1001;width:48px;height:48px;border-radius:50%;background:var(--yb);color:#fff;border:none;font-size:20px;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;align-items:center;justify-content:center;transition:transform .2s}
+.panel-fab.rotated{transform:rotate(45deg)}
+
+/* Mobile long-press hint */
+.lp-hint{display:none;position:absolute;top:60px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--yb);color:#fff;border-radius:8px;padding:6px 14px;font-size:11px;font-weight:500;box-shadow:0 3px 10px rgba(0,0,0,.2);white-space:nowrap;opacity:0;transition:opacity .3s}
+.lp-hint.show{opacity:1}
+
+@media(max-width:700px){
+  /* Panel becomes bottom sheet */
+  .panel{position:fixed;top:auto;left:0;bottom:0;right:0;width:100%;border-radius:18px 18px 0 0;max-height:65vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s ease;z-index:1002}
+  .panel.mob-open{transform:translateY(0)}
+  .panel-hd{padding:12px 16px 10px;position:sticky;top:0;z-index:1}
+  .panel-hd h1{font-size:15px}
+  .mob-handle{display:block}
+  .panel-bd{padding:8px 14px 14px}
+  .lsec{margin-bottom:8px}
+  .ltog{padding:6px 0}
+  .ll{font-size:12px}
+  .disc{padding:8px 14px 20px;font-size:9px}
+
+  /* Show FAB */
+  .panel-fab{display:flex}
+
+  /* Admin toolbar */
+  .atb{top:auto;bottom:80px;right:14px;left:14px;justify-content:center;max-width:100%}
+
+  /* Draw status */
+  .dstat{bottom:80px;left:14px;right:14px;transform:none;flex-wrap:wrap;justify-content:center;font-size:11px;padding:8px 14px}
+
+  /* Forms full-width */
+  .fcard{width:100%;max-width:100vw;border-radius:16px 16px 0 0;position:fixed;bottom:0;left:0;right:0;max-height:85vh}
+  .fov{align-items:flex-end}
+
+  /* Gate */
+  .gate-card{padding:20px 18px;border-radius:14px;max-height:95vh}
+  .gate-card h1{font-size:19px}
+  .gate-welcome{font-size:12px}
+  .gate-terms{max-height:130px;font-size:11px}
+
+  /* Hide desktop zoom control */
+  .leaflet-control-zoom{display:none!important}
+
+  /* Long-press hint */
+  .admin-on .lp-hint{display:block}
+
+  /* Context menu */
+  .ctx{min-width:200px}
+  .ctx-i{padding:10px 16px;font-size:13px}
+}
 </style>
 </head>
 <body>
@@ -178,9 +228,14 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
 <!-- APP UI (hidden until auth) -->
 <div class="app" id="app">
 
+<!-- Mobile panel toggle -->
+<button class="panel-fab" id="panelFab" onclick="toggleMobilePanel()">☰</button>
+<div class="lp-hint" id="lpHint">Long-press map to add a location</div>
+
 <!-- Panel -->
 <div class="panel" id="panel">
   <div class="panel-hd" onclick="togglePanel()">
+    <div class="mob-handle"></div>
     <h1>EWSS Community Map</h1>
     <div class="sub">New Haven</div>
   </div>
@@ -695,6 +750,7 @@ async function submitPin(){
     document.getElementById('atb').classList.add('on');
     document.body.classList.add('admin-on');
     const b=document.getElementById('adminBtn');b.textContent='✦ Admin Mode Active';b.style.borderColor='#d4a017';b.style.color='#d4a017';b.onclick=null;
+    if(window.innerWidth<=700)showLpHint();
   }else{document.getElementById('pinErr').textContent='Incorrect PIN.';document.getElementById('pinD').querySelectorAll('input').forEach(i=>i.value='');document.getElementById('pinD').querySelector('input').focus()}
 }
 function logoutAdmin(){isAdmin=false;cancelDraw();document.getElementById('atb').classList.remove('on');document.body.classList.remove('admin-on');Object.values(registry).forEach(r=>{if(r.marker.dragging)r.marker.dragging.disable()});const b=document.getElementById('adminBtn');b.textContent='🔐 Admin Login';b.style.borderColor='#ccc';b.style.color='#aaa';b.onclick=showPin}
@@ -970,6 +1026,59 @@ function exportData(){
 
 // Escape key
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){hidePin();hideMk();if(drawMode!=='idle')cancelDraw();document.getElementById('zoneOv').classList.remove('on')}});
+
+// =====================================================
+// MOBILE PANEL TOGGLE
+// =====================================================
+let mobPanelOpen=false;
+function toggleMobilePanel(){
+  mobPanelOpen=!mobPanelOpen;
+  document.getElementById('panel').classList.toggle('mob-open',mobPanelOpen);
+  const fab=document.getElementById('panelFab');
+  fab.textContent=mobPanelOpen?'✕':'☰';
+  fab.classList.toggle('rotated',mobPanelOpen);
+}
+
+// Close mobile panel when clicking map
+map.on('click',function(){
+  if(mobPanelOpen){toggleMobilePanel()}
+});
+
+// =====================================================
+// LONG-PRESS FOR MOBILE (replaces right-click)
+// =====================================================
+let lpTimer=null;
+let lpLatLng=null;
+
+map.getContainer().addEventListener('touchstart',function(e){
+  if(!isAdmin||drawMode!=='idle')return;
+  if(e.touches.length!==1)return;
+  lpTimer=setTimeout(function(){
+    // Get map coordinates from touch
+    const touch=e.touches[0];
+    const rect=map.getContainer().getBoundingClientRect();
+    const point=L.point(touch.clientX-rect.left,touch.clientY-rect.top);
+    lpLatLng=map.containerPointToLatLng(point);
+    ctxLatLng=lpLatLng;
+    ctxMarkerId=null;
+    const menu=document.getElementById('ctx');
+    menu.style.left=touch.clientX+'px';
+    menu.style.top=touch.clientY+'px';
+    document.getElementById('ctxMove').style.display='none';
+    menu.classList.add('on');
+  },600);
+},{passive:true});
+
+map.getContainer().addEventListener('touchend',function(){clearTimeout(lpTimer)},{passive:true});
+map.getContainer().addEventListener('touchmove',function(){clearTimeout(lpTimer)},{passive:true});
+
+// Show long-press hint briefly for admin on mobile
+function showLpHint(){
+  const h=document.getElementById('lpHint');
+  h.classList.add('show');
+  setTimeout(()=>h.classList.remove('show'),3000);
+}
+
 </script>
 </body>
 </html>
