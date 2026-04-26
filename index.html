@@ -55,6 +55,9 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
 .dept-filter select{width:100%;padding:3px 6px;border:1.5px solid #ddd;border-radius:5px;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:500;outline:none;cursor:pointer}
 .admin-login-btn{display:block;width:100%;margin-top:8px;padding:7px;background:none;border:1.5px dashed #ccc;border-radius:8px;color:#aaa;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.08em}
 .admin-login-btn:hover{border-color:var(--yb);color:var(--yb)}
+.toggle-all{display:flex;gap:6px;margin-bottom:10px}
+.toggle-all button{flex:1;padding:5px;border:1.5px solid #ddd;border-radius:6px;background:#fff;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;color:#888;cursor:pointer;transition:all .15s}
+.toggle-all button:hover{border-color:var(--yb);color:var(--yb)}
 
 /* Disclaimer footer */
 .disc{padding:10px 16px 14px;border-top:1px solid #eee;font-size:9.5px;color:#aaa;line-height:1.6}
@@ -121,10 +124,13 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
 .padmin-btn{background:none;border:none;cursor:pointer;font-size:13px;opacity:.5;padding:2px}
 .padmin-btn:hover{opacity:1}
 .pclass-list{margin:6px 0}
-.pclass-item{font-size:12px;color:var(--ch);padding:2px 0;border-bottom:1px solid #f0f0f0}
+.pclass-item{font-size:12px;color:var(--ch);padding:3px 0;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
 .pclass-item:last-child{border:none}
 .pclass-dept{font-weight:600;color:var(--yb)}
-.pclass-add{display:none;font-size:18px;cursor:pointer;color:var(--yb);border:1.5px solid var(--yb);border-radius:50%;width:22px;height:22px;line-height:18px;text-align:center;margin-top:4px;background:#fff}
+.pclass-edit{display:none;font-size:11px;padding:1px 3px;opacity:.4}
+.pclass-edit:hover{opacity:1}
+.admin-on .pclass-edit{display:inline-block}
+.pclass-add{display:none;font-size:11px;cursor:pointer;color:var(--yb);border:1.5px solid var(--yb);border-radius:14px;padding:3px 10px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:600}
 .pclass-add:hover{background:var(--yb);color:#fff}
 .admin-on .pclass-add{display:inline-block}
 .disclaimer-note{font-size:9px;color:#bbb;margin-top:6px;line-height:1.4;font-style:italic}
@@ -179,6 +185,7 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
     <div class="sub">New Haven</div>
   </div>
   <div class="panel-bd" id="panelBd">
+    <div class="toggle-all"><button onclick="showAll()">Show All</button><button onclick="hideAll()">Hide All</button></div>
     <div class="lsec">
       <div class="slbl">Housing</div>
       <div class="ltog" data-layer="students" onclick="toggle(this)"><span class="li">🏠</span><span class="ll">Students</span><span class="lc" id="c-students">0</span></div>
@@ -202,6 +209,7 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
       <div class="ltog" data-layer="daycare" onclick="toggle(this)"><span class="li">🧒</span><span class="ll">Daycare</span><span class="lc" id="c-daycare">0</span></div>
       <div class="ltog" data-layer="parks" onclick="toggle(this)"><span class="li">🌳</span><span class="ll">Parks / Playgrounds</span><span class="lc" id="c-parks">0</span></div>
       <div class="ltog" data-layer="hotels" onclick="toggle(this)"><span class="li">🏨</span><span class="ll">Hotels / Airbnb</span><span class="lc" id="c-hotels">0</span></div>
+      <div class="ltog" data-layer="gyms" onclick="toggle(this)"><span class="li">🏋️</span><span class="ll">Gyms</span><span class="lc" id="c-gyms">0</span></div>
     </div>
     <button class="admin-login-btn" id="adminBtn" onclick="showPin()">🔐 Admin Login</button>
   </div>
@@ -259,6 +267,7 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
       <option value="hotels">Hotel / Airbnb</option>
       <option value="daycare">Daycare</option>
       <option value="parks">Park / Playground</option>
+      <option value="gyms">Gym</option>
     </select>
   </div>
   <div class="default-name" id="nameGrp">
@@ -294,12 +303,15 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
   <div class="fg" id="zoneLvl"><label>Noise Level</label><select id="zoneLevel"><option value="quiet">🟢 Quiet</option><option value="medium">🟡 Medium</option><option value="loud">🔴 Loud</option></select></div>
   <div class="fg" id="zoneClr" style="display:none"><label>Route Color</label><input type="color" id="routeColor" value="#2196F3" style="height:34px;padding:2px"></div>
   <div class="fg"><label>Description</label><textarea id="zoneDesc" placeholder="Details..."></textarea></div>
-  <div class="factions"><button class="fs" onclick="cancelDraw()">Cancel</button><button class="fp" onclick="saveZone()">Save</button></div>
+  <div class="factions"><button class="fdel" id="zoneDelBtn" style="display:none" onclick="deleteEditingNoise()">Delete</button><button class="fs" onclick="cancelDraw()">Cancel</button><button class="fp" onclick="saveZone()">Save</button></div>
 </div>
 </div>
 
 <!-- Context menu -->
-<div class="ctx" id="ctx"><div class="ctx-i" onclick="ctxAdd()"><span>📍</span> Add location here</div></div>
+<div class="ctx" id="ctx">
+  <div class="ctx-i" onclick="ctxAdd()"><span>📍</span> Add location here</div>
+  <div class="ctx-i ctx-move" id="ctxMove" style="display:none" onclick="ctxMovePin()"><span>✋</span> Move this pin</div>
+</div>
 
 </div><!-- end .app -->
 
@@ -337,13 +349,14 @@ const SHEET_URLS={
   shuttle_routes:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=600234696&single=true&output=csv',
   noise_zones:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=717531311&single=true&output=csv',
   walking_routes:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=272395583&single=true&output=csv',
+  gyms:'',
 };
 
 document.getElementById('lastUpdated').textContent=LAST_UPDATED;
 
-const CATS=['students','classes','food','grocery','bars','daycare','res_colleges','study','cafes','hotels','parks'];
-const LABELS={students:'Housing',classes:'Class',food:'Restaurant',grocery:'Grocery',bars:'Bar',daycare:'Daycare',res_colleges:'Residential College',study:'Study Location',cafes:'Cafe',hotels:'Hotel / Airbnb',parks:'Park / Playground'};
-const EMOJIS={students:'🏠',classes:'📖',food:'🍽️',grocery:'🛒',bars:'🍸',daycare:'🧒',res_colleges:'🏛️',study:'📝',cafes:'☕',hotels:'🏨',parks:'🌳'};
+const CATS=['students','classes','food','grocery','bars','daycare','res_colleges','study','cafes','hotels','parks','gyms'];
+const LABELS={students:'Housing',classes:'Class',food:'Restaurant',grocery:'Grocery',bars:'Bar',daycare:'Daycare',res_colleges:'Residential College',study:'Study Location',cafes:'Cafe',hotels:'Hotel / Airbnb',parks:'Park / Playground',gyms:'Gym'};
+const EMOJIS={students:'🏠',classes:'📖',food:'🍽️',grocery:'🛒',bars:'🍸',daycare:'🧒',res_colleges:'🏛️',study:'📝',cafes:'☕',hotels:'🏨',parks:'🌳',gyms:'🏋️'};
 const CONTRIB_CATS=['food','cafes','bars','hotels'];
 
 const DATA={};CATS.forEach(c=>DATA[c]=[]);
@@ -358,10 +371,16 @@ document.getElementById('gatePw').addEventListener('keydown',e=>{if(e.key==='Ent
 async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}
 
 async function logAccess(ok){
-  const e={ts:new Date().toISOString(),ok,ua:navigator.userAgent,scr:`${screen.width}x${screen.height}`};
+  const e={ts:new Date().toISOString(),ok,ua:navigator.userAgent,scr:`${screen.width}x${screen.height}`,lang:navigator.language,ref:document.referrer||'direct'};
   try{const r=await fetch('https://api.ipify.org?format=json');e.ip=(await r.json()).ip}catch(_){e.ip='?'}
   console.log('[ACCESS]',JSON.stringify(e));
-  if(ACCESS_LOG_WEBHOOK)try{await fetch(ACCESS_LOG_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(e),mode:'no-cors'})}catch(_){}
+  // Log to Apps Script access_log tab
+  if(WRITE_BACK_URL){
+    try{await fetch(WRITE_BACK_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'log_access',entry:e}),mode:'no-cors'})}catch(_){}
+  }
+  if(ACCESS_LOG_WEBHOOK&&ACCESS_LOG_WEBHOOK!==WRITE_BACK_URL){
+    try{await fetch(ACCESS_LOG_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(e),mode:'no-cors'})}catch(_){}
+  }
 }
 
 async function tryAccess(){
@@ -385,7 +404,7 @@ function parseCSV(text){
   return lines.slice(1).map(l=>{const v=csvRow(l);const o={};hdr.forEach((h,i)=>o[h.trim()]=((v[i]||'').trim()));return o});
 }
 function csvRow(l){const r=[];let c='',q=false;for(let i=0;i<l.length;i++){const ch=l[i];if(q){if(ch==='"'&&l[i+1]==='"'){c+='"';i++}else if(ch==='"')q=false;else c+=ch}else{if(ch==='"')q=true;else if(ch===','){r.push(c);c=''}else c+=ch}}r.push(c);return r}
-function skipRow(r){const v=Object.values(r).join(' ').toLowerCase();return v.includes('latitude')||v.includes('display name')||v.includes('restaurant name')||v.includes('store name')||v.includes('bar name')||v.includes('facility name')||v.includes('course number')||v.includes('route name (same')||v.includes('zone name (same')||v.includes('cafe name')||v.includes('hotel name')||v.includes('park name')||v.includes('location name')||v.includes('college name')}
+function skipRow(r){const v=Object.values(r).join(' ').toLowerCase();return v.includes('latitude')||v.includes('display name')||v.includes('restaurant name')||v.includes('store name')||v.includes('bar name')||v.includes('facility name')||v.includes('course number')||v.includes('route name (same')||v.includes('zone name (same')||v.includes('cafe name')||v.includes('hotel name')||v.includes('park name')||v.includes('location name')||v.includes('college name')||v.includes('gym name')}
 
 // =====================================================
 // MAP
@@ -412,6 +431,8 @@ layers.noise=L.layerGroup().addTo(map);
 
 let nextId=1;
 const registry={};// id->{marker,cat,item}
+const noiseRegistry={};// id->{polygon,zone}
+let nextNoiseId=1;
 const classMarkers=[];// {marker,dept,id}
 const allDepts=new Set();
 let isAdmin=false;
@@ -424,12 +445,16 @@ function popupHtml(cat,item){
   const adminBtns=`<div class="padmin-row"><button class="padmin-btn" onclick="editItem(${item._id})" title="Edit">✏️</button></div>`;
 
   if(cat==='classes'){
-    // Check for building grouping
     const key=item.lat.toFixed(4)+','+item.lng.toFixed(4);
     const bldgClasses=DATA.classes.filter(c=>c.lat.toFixed(4)+','+c.lng.toFixed(4)===key);
-    let classList=bldgClasses.map(c=>`<div class="pclass-item"><span class="pclass-dept">${c.dept||''}</span> ${c.num||''} ${c.courseTitle?'— '+c.courseTitle:''}</div>`).join('');
+    const buildingName=item.desc||item.address||'Building';
+    let classList=bldgClasses.map(c=>{
+      const editBtn=`<button class="padmin-btn pclass-edit" onclick="editItem(${c._id})" title="Edit this class">✏️</button>`;
+      return `<div class="pclass-item"><span class="pclass-dept">${c.dept||''}</span> ${c.num||''} ${c.courseTitle?'— '+c.courseTitle:''}${editBtn}</div>`;
+    }).join('');
+    const addBtn=`<div style="margin-top:6px"><button class="pclass-add" onclick="addClassToBuilding(${item.lat},${item.lng},'${(item.desc||'').replace(/'/g,"\\'")}','${(item.address||'').replace(/'/g,"\\'")}')">+ Add Class</button></div>`;
     const note='<div class="disclaimer-note">Class locations may change between semesters.</div>';
-    return `${adminBtns}<strong>${item.desc||'Building'}</strong><div class="pcat" style="color:#6c8ebf">${lbl}</div>${addr}<div class="pclass-list">${classList}</div><div class="pclass-add" onclick="addClassToBuilding(${item.lat},${item.lng},'${(item.desc||'').replace(/'/g,"\\'")}','${(item.address||'').replace(/'/g,"\\'")}')">+</div>${note}`;
+    return `<strong>${buildingName}</strong><div class="pcat" style="color:#6c8ebf">Classes at this location</div>${addr}<div class="pclass-list">${classList}</div>${addBtn}${note}`;
   }
 
   return `${adminBtns}<strong>${item.name}</strong><div class="pcat" style="color:#6c8ebf">${lbl}</div>${addr}${desc}${contrib}`;
@@ -441,14 +466,85 @@ function addToMap(cat,item){
   m.addTo(layers[cat]);
   registry[item._id]={marker:m,cat,item};
 
+  // Right-click on marker for move option
+  m.on('contextmenu',function(e){
+    if(!isAdmin||drawMode!=='idle')return;
+    L.DomEvent.stopPropagation(e);
+    ctxLatLng=e.latlng;
+    ctxMarkerId=item._id;
+    const menu=document.getElementById('ctx');
+    menu.style.left=e.originalEvent.pageX+'px';
+    menu.style.top=e.originalEvent.pageY+'px';
+    document.getElementById('ctxMove').style.display='';
+    menu.classList.add('on');
+  });
+
   if(cat==='classes'){
     const dept=(item.dept||item.name.split(/\s+/)[0]||'').toUpperCase();
     item.dept=dept;
     classMarkers.push({marker:m,dept,id:item._id});
     if(dept){allDepts.add(dept);rebuildDeptFilter()}
+    // Also add subject/alternate codes to filter
+    if(item.subject){
+      const altCodes=item.subject.split(/[,;\/]\s*/).map(s=>s.trim().toUpperCase()).filter(s=>s);
+      altCodes.forEach(ac=>{if(ac&&ac!==dept){allDepts.add(ac)}});
+      rebuildDeptFilter();
+    }
   }
   return m;
 }
+
+function noisePopup(zone,nid){
+  const col={quiet:'#27ae60',medium:'#f1c40f',loud:'#e74c3c'}[zone.level]||'#f1c40f';
+  const lvl=zone.level.charAt(0).toUpperCase()+zone.level.slice(1);
+  const editBtn=`<div class="padmin-row"><button class="padmin-btn" onclick="editNoise(${nid})" title="Edit">✏️</button></div>`;
+  return `${editBtn}<strong>${zone.name}</strong><div class="pcat" style="color:${col}">${lvl} Noise Zone</div><div class="pdesc">${zone.desc||''}</div>`;
+}
+
+function addNoiseToMap(zone){
+  const nid=nextNoiseId++;
+  const col={quiet:'#27ae60',medium:'#f1c40f',loud:'#e74c3c'}[zone.level]||'#f1c40f';
+  zone.color=col;zone._nid=nid;
+  const p=L.polygon(zone.coords,{color:col,weight:2,opacity:.6,fillColor:col,fillOpacity:.18});
+  p.bindPopup(noisePopup(zone,nid));
+  p.addTo(layers.noise);
+  noiseRegistry[nid]={polygon:p,zone};
+  return p;
+}
+
+function editNoise(nid){
+  const r=noiseRegistry[nid];if(!r)return;
+  map.closePopup();
+  const zone=r.zone;
+  const ov=document.getElementById('zoneOv');
+  document.getElementById('zoneTitle').textContent='Edit Noise Zone';
+  document.getElementById('zoneLvl').style.display='';
+  document.getElementById('zoneClr').style.display='none';
+  document.getElementById('zoneName').value=zone.name;
+  document.getElementById('zoneLevel').value=zone.level;
+  document.getElementById('zoneDesc').value=zone.desc||'';
+  document.getElementById('zoneDelBtn').style.display='';
+  editingNoiseId=nid;
+  ov.classList.add('on');
+  document.getElementById('zoneName').focus();
+}
+
+function deleteEditingNoise(){
+  if(!editingNoiseId)return;
+  if(!confirm('Delete this noise zone?'))return;
+  deleteNoise(editingNoiseId);
+  editingNoiseId=null;
+  document.getElementById('zoneOv').classList.remove('on');
+}
+
+function deleteNoise(nid){
+  const r=noiseRegistry[nid];if(!r)return;
+  layers.noise.removeLayer(r.polygon);
+  const idx=NOISE_ZONES.indexOf(r.zone);if(idx>-1)NOISE_ZONES.splice(idx,1);
+  delete noiseRegistry[nid];
+}
+
+let editingNoiseId=null;
 
 function refreshClassPopups(lat,lng){
   const key=lat.toFixed(4)+','+lng.toFixed(4);
@@ -470,26 +566,36 @@ function rebuildDeptFilter(){
 
 function filterDept(){
   const d=document.getElementById('deptSel').value;
+  let visCount=0;
   classMarkers.forEach(cm=>{
-    if(d==='all'||cm.dept===d){if(!layers.classes.hasLayer(cm.marker))layers.classes.addLayer(cm.marker)}
+    const item=registry[cm.id]?registry[cm.id].item:null;
+    const altCodes=item&&item.subject?item.subject.split(/[,;\/]\s*/).map(s=>s.trim().toUpperCase()):[];
+    const matches=d==='all'||cm.dept===d||altCodes.includes(d);
+    if(matches){if(!layers.classes.hasLayer(cm.marker))layers.classes.addLayer(cm.marker);visCount++}
     else layers.classes.removeLayer(cm.marker);
   });
-  document.getElementById('c-classes').textContent=d==='all'?DATA.classes.length:classMarkers.filter(cm=>cm.dept===d).length;
+  document.getElementById('c-classes').textContent=d==='all'?DATA.classes.length:visCount;
 }
 
 function addClassToBuilding(lat,lng,desc,addr){
   ctxLatLng={lat,lng};
-  document.getElementById('mkCoord').textContent=`📌 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  const buildingName=desc||addr||'this building';
+  document.getElementById('mkCoord').textContent=`📌 Adding class to: ${buildingName}`;
   document.getElementById('mkCat').value='classes';
+  document.getElementById('mkCat').disabled=true;
   toggleClassFields();
   document.getElementById('mkAddr').value=addr;
   document.getElementById('mkDesc').value=desc;
-  document.getElementById('mkTitle').textContent='Add Class to Building';
+  document.getElementById('mkDept').value='';
+  document.getElementById('mkNum').value='';
+  document.getElementById('mkCTitle').value='';
+  document.getElementById('mkTitle').textContent=`Add Class — ${buildingName}`;
   document.getElementById('mkActions').style.display='';
   document.getElementById('mkEditActions').style.display='none';
   editingId=null;
   document.getElementById('mkOv').classList.add('on');
   document.getElementById('mkDept').focus();
+  map.closePopup();
 }
 
 // =====================================================
@@ -525,7 +631,7 @@ async function loadAll(){
   const zg={};
   nz.forEach(row=>{if(skipRow(row))return;const n=row.zone_name,lat=parseFloat(row.vertex_lat),lng=parseFloat(row.vertex_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!zg[n])zg[n]={name:n,level:row.level||'medium',desc:row.desc||'',verts:[]};if(row.level)zg[n].level=row.level;if(row.desc)zg[n].desc=row.desc;zg[n].verts.push({order:parseInt(row.vertex_order)||0,lat,lng})});
   const lc={quiet:'#27ae60',medium:'#f1c40f',loud:'#e74c3c'};
-  Object.values(zg).forEach(z=>{z.verts.sort((a,b)=>a.order-b.order);const coords=z.verts.map(v=>[v.lat,v.lng]);const col=lc[z.level]||'#f1c40f';NOISE_ZONES.push({...z,color:col,coords});L.polygon(coords,{color:col,weight:2,opacity:.6,fillColor:col,fillOpacity:.18}).bindPopup(`<strong>${z.name}</strong><div class="pcat" style="color:${col}">${z.level.charAt(0).toUpperCase()+z.level.slice(1)} Noise Zone</div><div>${z.desc}</div>`).addTo(layers.noise)});
+  Object.values(zg).forEach(z=>{z.verts.sort((a,b)=>a.order-b.order);const coords=z.verts.map(v=>[v.lat,v.lng]);const zone={name:z.name,level:z.level,desc:z.desc,coords};NOISE_ZONES.push(zone);addNoiseToMap(zone)});
 
   // Walking routes
   if(SHEET_URLS.walking_routes){
@@ -545,7 +651,26 @@ loadAll();
 // =====================================================
 // TOGGLES
 // =====================================================
+const ALL_LAYERS=['students','classes','shuttle','noise','walking','res_colleges','study','food','cafes','grocery','bars','daycare','parks','hotels','gyms'];
+
 function toggle(el){const l=el.dataset.layer;el.classList.toggle('off')?map.removeLayer(layers[l]):map.addLayer(layers[l])}
+
+function showAll(){
+  document.querySelectorAll('.ltog').forEach(el=>{
+    el.classList.remove('off');
+    const l=el.dataset.layer;
+    if(l&&layers[l]&&!map.hasLayer(layers[l]))map.addLayer(layers[l]);
+  });
+}
+
+function hideAll(){
+  document.querySelectorAll('.ltog').forEach(el=>{
+    el.classList.add('off');
+    const l=el.dataset.layer;
+    if(l&&layers[l]&&map.hasLayer(layers[l]))map.removeLayer(layers[l]);
+  });
+}
+
 let panelOpen=true;
 function togglePanel(){panelOpen=!panelOpen;document.getElementById('panelBd').style.display=panelOpen?'block':'none'}
 
@@ -572,18 +697,33 @@ async function submitPin(){
     const b=document.getElementById('adminBtn');b.textContent='✦ Admin Mode Active';b.style.borderColor='#d4a017';b.style.color='#d4a017';b.onclick=null;
   }else{document.getElementById('pinErr').textContent='Incorrect PIN.';document.getElementById('pinD').querySelectorAll('input').forEach(i=>i.value='');document.getElementById('pinD').querySelector('input').focus()}
 }
-function logoutAdmin(){isAdmin=false;cancelDraw();document.getElementById('atb').classList.remove('on');document.body.classList.remove('admin-on');const b=document.getElementById('adminBtn');b.textContent='🔐 Admin Login';b.style.borderColor='#ccc';b.style.color='#aaa';b.onclick=showPin}
+function logoutAdmin(){isAdmin=false;cancelDraw();document.getElementById('atb').classList.remove('on');document.body.classList.remove('admin-on');Object.values(registry).forEach(r=>{if(r.marker.dragging)r.marker.dragging.disable()});const b=document.getElementById('adminBtn');b.textContent='🔐 Admin Login';b.style.borderColor='#ccc';b.style.color='#aaa';b.onclick=showPin}
 
 // =====================================================
 // CONTEXT MENU
 // =====================================================
 let ctxLatLng=null;
-map.on('contextmenu',e=>{if(!isAdmin||drawMode!=='idle')return;e.originalEvent.preventDefault();ctxLatLng=e.latlng;const m=document.getElementById('ctx');m.style.left=e.originalEvent.pageX+'px';m.style.top=e.originalEvent.pageY+'px';m.classList.add('on')});
+let ctxMarkerId=null;
+map.on('contextmenu',e=>{if(!isAdmin||drawMode!=='idle')return;e.originalEvent.preventDefault();ctxLatLng=e.latlng;ctxMarkerId=null;const m=document.getElementById('ctx');m.style.left=e.originalEvent.pageX+'px';m.style.top=e.originalEvent.pageY+'px';document.getElementById('ctxMove').style.display='none';m.classList.add('on')});
 document.addEventListener('click',()=>document.getElementById('ctx').classList.remove('on'));
 
 function ctxAdd(){
   document.getElementById('ctx').classList.remove('on');
   openMkForm(ctxLatLng);
+}
+
+function ctxMovePin(){
+  document.getElementById('ctx').classList.remove('on');
+  if(!ctxMarkerId||!registry[ctxMarkerId])return;
+  const r=registry[ctxMarkerId];
+  r.marker.dragging.enable();
+  r.marker.once('dragend',function(){
+    const p=r.marker.getLatLng();
+    r.item.lat=p.lat;r.item.lng=p.lng;
+    r.marker.dragging.disable();
+    writeBack({action:'update_marker',category:r.cat,oldName:r.item.name,item:{name:r.item.name,lat:p.lat,lng:p.lng,desc:r.item.desc,address:r.item.address,contributor:r.item.contributor||'',subject:r.item.subject||''}});
+  });
+  r.marker.closePopup();
 }
 
 // =====================================================
@@ -674,8 +814,6 @@ function saveMk(){
     if(cat==='classes'){item.dept=dept;item.num=num;item.courseTitle=courseTitle}
     DATA[cat].push(item);
     const m=addToMap(cat,item);
-    if(isAdmin)m.dragging.enable();
-    m.on('dragend',function(){const p=m.getLatLng();item.lat=p.lat;item.lng=p.lng});
     if(cat==='classes')refreshClassPopups(item.lat,item.lng);
     const c=document.getElementById('c-'+cat);if(c)c.textContent=DATA[cat].length;
     writeBack({action:'add_marker',category:cat,item:{name,lat:item.lat,lng:item.lng,desc,address:addr,contributor:contrib,subject:item.subject||''}});
@@ -721,7 +859,7 @@ function startDraw(mode){
 }
 
 function cancelDraw(){
-  drawMode='idle';drawPoints=[];drawMarkers=[];drawPreview.clearLayers();hideDstat();
+  drawMode='idle';drawPoints=[];drawMarkers=[];drawPreview.clearLayers();hideDstat();editingNoiseId=null;
   map.getContainer().style.cursor='';
   ['btnNoise','btnRoute','btnWalk'].forEach(b=>document.getElementById(b).classList.remove('act'));
   document.getElementById('zoneOv').classList.remove('on');
@@ -766,6 +904,8 @@ function finishDraw(){
   if(drawMode==='noise'&&drawPoints.length<3)return;
   if(drawMode!=='noise'&&drawPoints.length<2)return;
   const ov=document.getElementById('zoneOv');
+  document.getElementById('zoneDelBtn').style.display='none';
+  editingNoiseId=null;
   if(drawMode==='noise'){document.getElementById('zoneTitle').textContent='Name This Noise Zone';document.getElementById('zoneLvl').style.display='';document.getElementById('zoneClr').style.display='none'}
   else{document.getElementById('zoneTitle').textContent='Name This Route';document.getElementById('zoneLvl').style.display='none';document.getElementById('zoneClr').style.display=''}
   document.getElementById('zoneName').value='';document.getElementById('zoneDesc').value='';
@@ -776,12 +916,28 @@ function saveZone(){
   const name=document.getElementById('zoneName').value.trim();if(!name){document.getElementById('zoneName').style.borderColor='#e74c3c';return}
   const desc=document.getElementById('zoneDesc').value.trim();
 
+  // Editing existing noise zone (no draw mode)
+  if(editingNoiseId&&drawMode==='idle'){
+    const r=noiseRegistry[editingNoiseId];
+    if(r){
+      const level=document.getElementById('zoneLevel').value;
+      r.zone.name=name;r.zone.level=level;r.zone.desc=desc;
+      const col={quiet:'#27ae60',medium:'#f1c40f',loud:'#e74c3c'}[level]||'#f1c40f';
+      r.zone.color=col;
+      r.polygon.setStyle({color:col,fillColor:col});
+      r.polygon.setPopupContent(noisePopup(r.zone,editingNoiseId));
+    }
+    editingNoiseId=null;
+    document.getElementById('zoneOv').classList.remove('on');
+    return;
+  }
+
   if(drawMode==='noise'){
     const level=document.getElementById('zoneLevel').value;
-    const cm={quiet:'#27ae60',medium:'#f1c40f',loud:'#e74c3c'};const col=cm[level];
     const coords=drawPoints.map(p=>[p.lat,p.lng]);
-    NOISE_ZONES.push({name,level,color:col,desc,coords});
-    L.polygon(coords,{color:col,weight:2,opacity:.6,fillColor:col,fillOpacity:.18}).bindPopup(`<strong>${name}</strong><div class="pcat" style="color:${col}">${level.charAt(0).toUpperCase()+level.slice(1)} Noise Zone</div><div>${desc}</div>`).addTo(layers.noise);
+    const zone={name,level,desc,coords};
+    NOISE_ZONES.push(zone);
+    addNoiseToMap(zone);
     writeBack({action:'add_zone',zone:{name,level,desc,coords}});
   }else if(drawMode==='route'){
     const col=document.getElementById('routeColor').value;
@@ -800,6 +956,7 @@ function saveZone(){
     document.getElementById('c-walking').textContent=WALKS.length;
     writeBack({action:'add_walk',route:{name,color:col,desc,stops:drawPoints.map(p=>({lat:p.lat,lng:p.lng}))}});
   }
+  editingNoiseId=null;
   document.getElementById('zoneOv').classList.remove('on');cancelDraw();
 }
 
