@@ -4,9 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EWSS Community Map — New Haven</title>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
 :root{--yb:#00356b;--ybl:#286dc0;--cream:#f5f2eb;--ch:#222;--pbg:rgba(245,242,235,0.97);--aa:#d4a017}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -124,9 +127,9 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
 .admin-on .padmin-row{display:flex}
 .padmin-btn{background:none;border:none;cursor:pointer;font-size:13px;opacity:.5;padding:2px}
 .padmin-btn:hover{opacity:1}
-.pclass-list{margin:6px 0}
-.pclass-item{font-size:12px;color:var(--ch);padding:3px 0;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
-.pclass-item:last-child{border:none}
+.pclass-list{margin:8px 0}
+.pclass-item{font-size:12px;color:var(--ch);padding:6px 8px;margin-bottom:4px;background:#f8f7f5;border-radius:6px;display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+.pclass-item:last-child{margin-bottom:0}
 .pclass-dept{font-weight:600;color:var(--yb)}
 .pclass-edit{display:none;font-size:11px;padding:1px 3px;opacity:.4}
 .pclass-edit:hover{opacity:1}
@@ -329,9 +332,23 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
     <div class="fg"><label>Name</label><input type="text" id="mkName" placeholder="e.g. Sally's Apizza"></div>
   </div>
   <div class="class-fields" id="classGrp">
+    <div class="fg" style="margin-bottom:4px"><label>Primary Code</label></div>
     <div class="frow">
-      <div class="fg"><label>Department</label><input type="text" id="mkDept" placeholder="CPSC" maxlength="6" style="text-transform:uppercase"></div>
-      <div class="fg" style="flex:0 0 80px"><label>Number</label><input type="text" id="mkNum" placeholder="1100" maxlength="5"></div>
+      <div class="fg"><input type="text" id="mkDept" placeholder="CPSC" maxlength="6" style="text-transform:uppercase"></div>
+      <div class="fg" style="flex:0 0 80px"><input type="text" id="mkNum" placeholder="1100" maxlength="5"></div>
+    </div>
+    <div class="fg" style="margin-bottom:4px"><label>Alternative Codes (optional)</label></div>
+    <div class="frow">
+      <div class="fg"><input type="text" id="mkDept2" placeholder="DEPT" maxlength="6" style="text-transform:uppercase"></div>
+      <div class="fg" style="flex:0 0 80px"><input type="text" id="mkNum2" placeholder="####" maxlength="5"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><input type="text" id="mkDept3" placeholder="DEPT" maxlength="6" style="text-transform:uppercase"></div>
+      <div class="fg" style="flex:0 0 80px"><input type="text" id="mkNum3" placeholder="####" maxlength="5"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><input type="text" id="mkDept4" placeholder="DEPT" maxlength="6" style="text-transform:uppercase"></div>
+      <div class="fg" style="flex:0 0 80px"><input type="text" id="mkNum4" placeholder="####" maxlength="5"></div>
     </div>
     <div class="fg"><label>Course Title</label><input type="text" id="mkCTitle" placeholder="e.g. Intro to Computing"></div>
   </div>
@@ -426,8 +443,13 @@ document.getElementById('gatePw').addEventListener('keydown',e=>{if(e.key==='Ent
 async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}
 
 async function logAccess(ok){
-  const e={ts:new Date().toISOString(),ok,ua:navigator.userAgent,scr:`${screen.width}x${screen.height}`,lang:navigator.language,ref:document.referrer||'direct'};
-  try{const r=await fetch('https://api.ipify.org?format=json');e.ip=(await r.json()).ip}catch(_){e.ip='?'}
+  const e={ts:new Date().toISOString(),ok,ua:navigator.userAgent,scr:`${screen.width}x${screen.height}`,lang:navigator.language,ref:document.referrer||'direct',ip:'pending'};
+  // Non-blocking IP fetch with 2s timeout
+  const ipFetch=Promise.race([
+    fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>d.ip),
+    new Promise(r=>setTimeout(()=>r('timeout'),2000))
+  ]).catch(()=>'?');
+  e.ip=await ipFetch;
   console.log('[ACCESS]',JSON.stringify(e));
   // Log to Apps Script access_log tab
   if(WRITE_BACK_URL){
@@ -502,14 +524,17 @@ function popupHtml(cat,item){
   if(cat==='classes'){
     const key=item.lat.toFixed(4)+','+item.lng.toFixed(4);
     const bldgClasses=DATA.classes.filter(c=>c.lat.toFixed(4)+','+c.lng.toFixed(4)===key);
-    const buildingName=item.desc||item.address||'Building';
+    const buildingName=item.address||item.desc||'Building';
+    const descLine=(item.desc&&item.desc!==item.address)?`<div class="pdesc">${item.desc}</div>`:'';
     let classList=bldgClasses.map(c=>{
       const editBtn=`<button class="padmin-btn pclass-edit" onclick="editItem(${c._id})" title="Edit this class">✏️</button>`;
-      return `<div class="pclass-item"><span class="pclass-dept">${c.dept||''}</span> ${c.num||''} ${c.courseTitle?'— '+c.courseTitle:''}${editBtn}</div>`;
+      const altCodes=c.subject?`<div style="font-size:10px;color:#999;margin-top:1px">Also: ${c.subject}</div>`:'';
+      const title=c.courseTitle?`<div style="font-size:11px;color:#555;margin-top:1px">${c.courseTitle}</div>`:'';
+      return `<div class="pclass-item"><div><span class="pclass-dept">${c.dept||''} ${c.num||''}</span>${title}${altCodes}</div>${editBtn}</div>`;
     }).join('');
     const addBtn=`<div style="margin-top:6px"><button class="pclass-add" onclick="addClassToBuilding(${item.lat},${item.lng},'${(item.desc||'').replace(/'/g,"\\'")}','${(item.address||'').replace(/'/g,"\\'")}')">+ Add Class</button></div>`;
     const note='<div class="disclaimer-note">Class locations may change between semesters.</div>';
-    return `<strong>${buildingName}</strong><div class="pcat" style="color:#6c8ebf">Classes at this location</div>${addr}<div class="pclass-list">${classList}</div>${addBtn}${note}`;
+    return `<strong>${buildingName}</strong><div class="pcat" style="color:#6c8ebf">Classes at this location</div>${descLine}<div class="pclass-list">${classList}</div>${addBtn}${note}`;
   }
 
   return `${adminBtns}<strong>${item.name}</strong><div class="pcat" style="color:#6c8ebf">${lbl}</div>${addr}${desc}${contrib}`;
@@ -634,16 +659,14 @@ function filterDept(){
 
 function addClassToBuilding(lat,lng,desc,addr){
   ctxLatLng={lat,lng};
-  const buildingName=desc||addr||'this building';
+  const buildingName=addr||desc||'this building';
   document.getElementById('mkCoord').textContent=`📌 Adding class to: ${buildingName}`;
   document.getElementById('mkCat').value='classes';
   document.getElementById('mkCat').disabled=true;
   toggleClassFields();
   document.getElementById('mkAddr').value=addr;
   document.getElementById('mkDesc').value=desc;
-  document.getElementById('mkDept').value='';
-  document.getElementById('mkNum').value='';
-  document.getElementById('mkCTitle').value='';
+  clearClassFields();
   document.getElementById('mkTitle').textContent=`Add Class — ${buildingName}`;
   document.getElementById('mkActions').style.display='';
   document.getElementById('mkEditActions').style.display='none';
@@ -653,51 +676,88 @@ function addClassToBuilding(lat,lng,desc,addr){
   map.closePopup();
 }
 
+function clearClassFields(){
+  ['mkDept','mkNum','mkDept2','mkNum2','mkDept3','mkNum3','mkDept4','mkNum4','mkCTitle'].forEach(id=>document.getElementById(id).value='');
+}
+
+function populateClassFields(item){
+  document.getElementById('mkDept').value=item.dept||'';
+  document.getElementById('mkNum').value=item.num||'';
+  document.getElementById('mkCTitle').value=item.courseTitle||'';
+  // Parse alt codes from subject field
+  const alts=(item.subject||'').split(/[,;\/]\s*/).filter(s=>s.trim());
+  const altFields=[['mkDept2','mkNum2'],['mkDept3','mkNum3'],['mkDept4','mkNum4']];
+  altFields.forEach(([d,n],i)=>{
+    if(alts[i]){
+      const parts=alts[i].trim().split(/\s+/);
+      document.getElementById(d).value=parts[0]||'';
+      document.getElementById(n).value=parts[1]||'';
+    }else{
+      document.getElementById(d).value='';
+      document.getElementById(n).value='';
+    }
+  });
+}
+
+function collectAltCodes(){
+  const alts=[];
+  [['mkDept2','mkNum2'],['mkDept3','mkNum3'],['mkDept4','mkNum4']].forEach(([d,n])=>{
+    const dept=document.getElementById(d).value.trim().toUpperCase();
+    const num=document.getElementById(n).value.trim();
+    if(dept)alts.push(dept+(num?' '+num:''));
+  });
+  return alts.join(', ');
+}
+
 // =====================================================
-// DATA LOADING
+// DATA LOADING — all sheets in parallel
 // =====================================================
 async function fetchSheet(url){try{const r=await fetch(url);if(!r.ok)throw 0;return parseCSV(await r.text())}catch(_){return[]}}
 
 async function loadAll(){
-  await Promise.all(CATS.map(async cat=>{
-    if(!SHEET_URLS[cat])return;
-    const rows=await fetchSheet(SHEET_URLS[cat]);
-    rows.forEach(row=>{
-      if(skipRow(row))return;
-      const lat=parseFloat(row.lat),lng=parseFloat(row.lng);
-      if(isNaN(lat)||isNaN(lng))return;
-      const item={name:row.name||'',lat,lng,desc:row.desc||'',address:row.address||'',subject:row.subject||'',contributor:row.contributor||''};
-      if(cat==='classes'){item.dept=(row.name||'').split(/\s+/)[0].toUpperCase();const parts=(row.name||'').match(/^(\S+)\s+(\S+)/);if(parts){item.dept=parts[1].toUpperCase();item.num=parts[2]}item.courseTitle=(row.name||'').replace(/^\S+\s+\S+\s*[—–-]?\s*/,'');}
-      DATA[cat].push(item);
-      addToMap(cat,item);
-    });
-    const c=document.getElementById('c-'+cat);if(c)c.textContent=DATA[cat].length;
+  // Fetch ALL sheets simultaneously
+  const allKeys=[...CATS.filter(c=>SHEET_URLS[c])];
+  if(SHEET_URLS.shuttle_routes)allKeys.push('shuttle_routes');
+  if(SHEET_URLS.noise_zones)allKeys.push('noise_zones');
+  if(SHEET_URLS.walking_routes)allKeys.push('walking_routes');
+
+  const results=await Promise.all(allKeys.map(async key=>{
+    const rows=await fetchSheet(SHEET_URLS[key]);
+    return{key,rows};
   }));
 
-  // Shuttle routes
-  const sr=await fetchSheet(SHEET_URLS.shuttle_routes);
-  const rg={};
-  sr.forEach(row=>{if(skipRow(row))return;const n=row.route_name,lat=parseFloat(row.stop_lat),lng=parseFloat(row.stop_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!rg[n])rg[n]={name:n,color:row.color||'#2196F3',desc:row.desc||'',stops:[]};if(row.color)rg[n].color=row.color;if(row.desc)rg[n].desc=row.desc;const isStop=row.is_stop!==undefined?(row.is_stop.toLowerCase()!=='no'&&row.is_stop!=='0'&&row.is_stop.toLowerCase()!=='false'):true;rg[n].stops.push({order:parseInt(row.stop_order)||0,lat,lng,isStop})});
-  Object.values(rg).forEach(route=>{route.stops.sort((a,b)=>a.order-b.order);const coords=route.stops.map(s=>[s.lat,s.lng]);SHUTTLES.push(route);L.polyline(coords,{color:route.color,weight:4,opacity:.8,dashArray:'8 6'}).bindPopup(`<strong>${route.name}</strong><div class="pcat" style="color:#8b6bae">Shuttle Route</div><div>${route.desc}</div>`).addTo(layers.shuttle);route.stops.forEach(s=>{if(s.isStop)L.marker([s.lat,s.lng],{icon:stopIcon()}).addTo(layers.shuttle)})});
-  document.getElementById('c-shuttle').textContent=SHUTTLES.length;
+  results.forEach(({key,rows})=>{
+    if(CATS.includes(key)){
+      rows.forEach(row=>{
+        if(skipRow(row))return;
+        const lat=parseFloat(row.lat),lng=parseFloat(row.lng);
+        if(isNaN(lat)||isNaN(lng))return;
+        const item={name:row.name||'',lat,lng,desc:row.desc||'',address:row.address||'',subject:row.subject||'',contributor:row.contributor||''};
+        if(key==='classes'){item.dept=(row.name||'').split(/\s+/)[0].toUpperCase();const parts=(row.name||'').match(/^(\S+)\s+(\S+)/);if(parts){item.dept=parts[1].toUpperCase();item.num=parts[2]}item.courseTitle=(row.name||'').replace(/^\S+\s+\S+\s*[—–-]?\s*/,'');}
+        DATA[key].push(item);
+        addToMap(key,item);
+      });
+      const c=document.getElementById('c-'+key);if(c)c.textContent=DATA[key].length;
+    }
+    else if(key==='shuttle_routes'){
+      const rg={};
+      rows.forEach(row=>{if(skipRow(row))return;const n=row.route_name,lat=parseFloat(row.stop_lat),lng=parseFloat(row.stop_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!rg[n])rg[n]={name:n,color:row.color||'#2196F3',desc:row.desc||'',stops:[]};if(row.color)rg[n].color=row.color;if(row.desc)rg[n].desc=row.desc;const isStop=row.is_stop!==undefined?(row.is_stop.toLowerCase()!=='no'&&row.is_stop!=='0'&&row.is_stop.toLowerCase()!=='false'):true;rg[n].stops.push({order:parseInt(row.stop_order)||0,lat,lng,isStop})});
+      Object.values(rg).forEach(route=>{route.stops.sort((a,b)=>a.order-b.order);const coords=route.stops.map(s=>[s.lat,s.lng]);SHUTTLES.push(route);L.polyline(coords,{color:route.color,weight:4,opacity:.8,dashArray:'8 6'}).bindPopup(`<strong>${route.name}</strong><div class="pcat" style="color:#8b6bae">Shuttle Route</div><div>${route.desc}</div>`).addTo(layers.shuttle);route.stops.forEach(s=>{if(s.isStop)L.marker([s.lat,s.lng],{icon:stopIcon()}).addTo(layers.shuttle)})});
+      document.getElementById('c-shuttle').textContent=SHUTTLES.length;
+    }
+    else if(key==='noise_zones'){
+      const zg={};
+      rows.forEach(row=>{if(skipRow(row))return;const n=row.zone_name,lat=parseFloat(row.vertex_lat),lng=parseFloat(row.vertex_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!zg[n])zg[n]={name:n,level:row.level||'medium',desc:row.desc||'',verts:[]};if(row.level)zg[n].level=row.level;if(row.desc)zg[n].desc=row.desc;zg[n].verts.push({order:parseInt(row.vertex_order)||0,lat,lng})});
+      Object.values(zg).forEach(z=>{z.verts.sort((a,b)=>a.order-b.order);const coords=z.verts.map(v=>[v.lat,v.lng]);const zone={name:z.name,level:z.level,desc:z.desc,coords};NOISE_ZONES.push(zone);addNoiseToMap(zone)});
+    }
+    else if(key==='walking_routes'){
+      const wg={};
+      rows.forEach(row=>{if(skipRow(row))return;const n=row.route_name,lat=parseFloat(row.point_lat||row.stop_lat),lng=parseFloat(row.point_lng||row.stop_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!wg[n])wg[n]={name:n,color:row.color||'#27ae60',desc:row.desc||'',pts:[]};if(row.color)wg[n].color=row.color;if(row.desc)wg[n].desc=row.desc;wg[n].pts.push({order:parseInt(row.point_order||row.stop_order)||0,lat,lng})});
+      Object.values(wg).forEach(w=>{w.pts.sort((a,b)=>a.order-b.order);const coords=w.pts.map(p=>[p.lat,p.lng]);WALKS.push({...w,coords});L.polyline(coords,{color:w.color,weight:3,opacity:.7}).bindPopup(`<strong>${w.name}</strong><div class="pcat" style="color:${w.color}">Walking / Running Route</div><div>${w.desc}</div>`).addTo(layers.walking)});
+      document.getElementById('c-walking').textContent=WALKS.length;
+    }
+  });
 
-  // Noise zones
-  const nz=await fetchSheet(SHEET_URLS.noise_zones);
-  const zg={};
-  nz.forEach(row=>{if(skipRow(row))return;const n=row.zone_name,lat=parseFloat(row.vertex_lat),lng=parseFloat(row.vertex_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!zg[n])zg[n]={name:n,level:row.level||'medium',desc:row.desc||'',verts:[]};if(row.level)zg[n].level=row.level;if(row.desc)zg[n].desc=row.desc;zg[n].verts.push({order:parseInt(row.vertex_order)||0,lat,lng})});
-  const lc={quiet:'#27ae60',medium:'#f1c40f',loud:'#e74c3c'};
-  Object.values(zg).forEach(z=>{z.verts.sort((a,b)=>a.order-b.order);const coords=z.verts.map(v=>[v.lat,v.lng]);const zone={name:z.name,level:z.level,desc:z.desc,coords};NOISE_ZONES.push(zone);addNoiseToMap(zone)});
-
-  // Walking routes
-  if(SHEET_URLS.walking_routes){
-    const wr=await fetchSheet(SHEET_URLS.walking_routes);
-    const wg={};
-    wr.forEach(row=>{if(skipRow(row))return;const n=row.route_name,lat=parseFloat(row.point_lat||row.stop_lat),lng=parseFloat(row.point_lng||row.stop_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!wg[n])wg[n]={name:n,color:row.color||'#27ae60',desc:row.desc||'',pts:[]};if(row.color)wg[n].color=row.color;if(row.desc)wg[n].desc=row.desc;wg[n].pts.push({order:parseInt(row.point_order||row.stop_order)||0,lat,lng})});
-    Object.values(wg).forEach(w=>{w.pts.sort((a,b)=>a.order-b.order);const coords=w.pts.map(p=>[p.lat,p.lng]);WALKS.push({...w,coords});L.polyline(coords,{color:w.color,weight:3,opacity:.7}).bindPopup(`<strong>${w.name}</strong><div class="pcat" style="color:${w.color}">Walking / Running Route</div><div>${w.desc}</div>`).addTo(layers.walking)});
-    document.getElementById('c-walking').textContent=WALKS.length;
-  }
-
-  // Admin class for popups
   if(isAdmin)document.body.classList.add('admin-on');
   console.log('[Loaded]',Object.fromEntries(CATS.map(c=>[c,DATA[c].length])));
 }
@@ -799,12 +859,10 @@ function openMkForm(ll,editId){
   toggleClassFields();
 
   if(editId&&cat==='classes'){
-    document.getElementById('mkDept').value=item.dept||'';
-    document.getElementById('mkNum').value=item.num||'';
-    document.getElementById('mkCTitle').value=item.courseTitle||'';
+    populateClassFields(item);
   }else{
     document.getElementById('mkName').value=item?item.name:'';
-    document.getElementById('mkDept').value='';document.getElementById('mkNum').value='';document.getElementById('mkCTitle').value='';
+    clearClassFields();
   }
   document.getElementById('mkAddr').value=item?item.address:'';
   document.getElementById('mkDesc').value=item?item.desc:'';
@@ -840,7 +898,7 @@ async function geocodeAddr(){
 
 function saveMk(){
   const cat=document.getElementById('mkCat').value;
-  let name,dept,num,courseTitle;
+  let name,dept,num,courseTitle,altSubject='';
 
   if(cat==='classes'){
     dept=document.getElementById('mkDept').value.trim().toUpperCase();
@@ -848,6 +906,7 @@ function saveMk(){
     courseTitle=document.getElementById('mkCTitle').value.trim();
     if(!dept||!num){if(!dept)document.getElementById('mkDept').style.borderColor='#e74c3c';if(!num)document.getElementById('mkNum').style.borderColor='#e74c3c';return}
     name=`${dept} ${num}`+(courseTitle?` — ${courseTitle}`:'');
+    altSubject=collectAltCodes();
   }else{
     name=document.getElementById('mkName').value.trim();
     if(!name){document.getElementById('mkName').style.borderColor='#e74c3c';return}
@@ -861,18 +920,18 @@ function saveMk(){
     const r=registry[editingId];
     const oldName=r.item.name;
     r.item.name=name;r.item.address=addr;r.item.desc=desc;r.item.contributor=contrib;
-    if(cat==='classes'){r.item.dept=dept;r.item.num=num;r.item.courseTitle=courseTitle}
+    if(cat==='classes'){r.item.dept=dept;r.item.num=num;r.item.courseTitle=courseTitle;r.item.subject=altSubject}
     r.marker.setPopupContent(popupHtml(cat,r.item));
     if(cat==='classes')refreshClassPopups(r.item.lat,r.item.lng);
-    writeBack({action:'update_marker',category:cat,oldName,item:{name,lat:r.item.lat,lng:r.item.lng,desc,address:addr,contributor:contrib,subject:r.item.subject||''}});
+    writeBack({action:'update_marker',category:cat,oldName,item:{name,lat:r.item.lat,lng:r.item.lng,desc,address:addr,contributor:contrib,subject:altSubject}});
   }else{
-    const item={name,lat:ctxLatLng.lat,lng:ctxLatLng.lng,desc,address:addr,contributor:contrib,subject:''};
+    const item={name,lat:ctxLatLng.lat,lng:ctxLatLng.lng,desc,address:addr,contributor:contrib,subject:altSubject};
     if(cat==='classes'){item.dept=dept;item.num=num;item.courseTitle=courseTitle}
     DATA[cat].push(item);
     const m=addToMap(cat,item);
     if(cat==='classes')refreshClassPopups(item.lat,item.lng);
     const c=document.getElementById('c-'+cat);if(c)c.textContent=DATA[cat].length;
-    writeBack({action:'add_marker',category:cat,item:{name,lat:item.lat,lng:item.lng,desc,address:addr,contributor:contrib,subject:item.subject||''}});
+    writeBack({action:'add_marker',category:cat,item:{name,lat:item.lat,lng:item.lng,desc,address:addr,contributor:contrib,subject:altSubject}});
   }
   hideMk();
 }
