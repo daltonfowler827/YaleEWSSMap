@@ -138,6 +138,13 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
 .pclass-add:hover{background:var(--yb);color:#fff}
 .admin-on .pclass-add{display:inline-block}
 .disclaimer-note{font-size:9px;color:#bbb;margin-top:6px;line-height:1.4;font-style:italic}
+.list-item{padding:8px 10px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .1s;display:flex;align-items:center;gap:8px}
+.list-item:hover{background:#f5f5f5}
+.list-item .li-emoji{font-size:16px;flex-shrink:0}
+.list-item .li-info{flex:1;min-width:0}
+.list-item .li-name{font-size:12px;font-weight:600;color:var(--yb);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-item .li-desc{font-size:10px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-item .li-cat{font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
 
 /* Mobile FAB toggle */
 .panel-fab{display:none;position:absolute;bottom:24px;left:14px;z-index:1001;width:48px;height:48px;border-radius:50%;background:var(--yb);color:#fff;border:none;font-size:20px;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;align-items:center;justify-content:center;transition:transform .2s}
@@ -248,15 +255,16 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
       <div class="slbl">Housing</div>
       <div class="ltog" data-layer="students" onclick="toggle(this)"><span class="li">🏠</span><span class="ll">Students</span><span class="lc" id="c-students">0</span></div>
       <div class="ltog" data-layer="shuttle" onclick="toggle(this)"><span class="li">🚌</span><span class="ll">Shuttle Routes</span><span class="lc" id="c-shuttle">0</span></div>
+      <div id="shuttleRouteToggles" style="padding-left:28px"></div>
       <div class="ltog" data-layer="noise" onclick="toggle(this)"><span class="li">🔊</span><span class="ll">Noise Zones</span></div>
-      <div class="ltog" data-layer="walking" onclick="toggle(this)"><span class="li">🏃</span><span class="ll">Walking / Running</span><span class="lc" id="c-walking">0</span></div>
+      <div class="ltog" data-layer="walking" onclick="toggle(this)"><span class="li">🏃</span><span class="ll">Walking / Running / Cycling</span><span class="lc" id="c-walking">0</span></div>
     </div>
     <div class="lsec">
       <div class="slbl">Campus</div>
       <div class="ltog" data-layer="classes" onclick="toggle(this)"><span class="li">📖</span><span class="ll">Classes</span><span class="lc" id="c-classes">0</span></div>
       <div class="dept-filter" id="deptWrap"><select id="deptSel" onchange="filterDept()"><option value="all">All Departments</option></select></div>
       <div class="ltog" data-layer="res_colleges" onclick="toggle(this)"><span class="li">🏛️</span><span class="ll">Residential Colleges</span><span class="lc" id="c-res_colleges">0</span></div>
-      <div class="ltog" data-layer="study" onclick="toggle(this)"><span class="li">📝</span><span class="ll">Study Locations</span><span class="lc" id="c-study">0</span></div>
+      <div class="ltog" data-layer="study" onclick="toggle(this)"><span class="li">📝</span><span class="ll">Quiet Study</span><span class="lc" id="c-study">0</span></div>
     </div>
     <div class="lsec">
       <div class="slbl">Places</div>
@@ -269,6 +277,7 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
       <div class="ltog" data-layer="hotels" onclick="toggle(this)"><span class="li">🏨</span><span class="ll">Hotels / Airbnb</span><span class="lc" id="c-hotels">0</span></div>
       <div class="ltog" data-layer="gyms" onclick="toggle(this)"><span class="li">🏋️</span><span class="ll">Gyms</span><span class="lc" id="c-gyms">0</span></div>
     </div>
+    <button class="admin-login-btn" style="border-style:solid;color:#666;margin-bottom:4px" onclick="showListView()">📋 Browse All Locations</button>
     <button class="admin-login-btn" id="adminBtn" onclick="showPin()">🔐 Admin Login</button>
   </div>
   <div class="disc">
@@ -317,7 +326,7 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
       <option value="students">Student Housing</option>
       <option value="classes">Class</option>
       <option value="res_colleges">Residential College</option>
-      <option value="study">Study Location</option>
+      <option value="study">Quiet Study</option>
       <option value="food" selected>Restaurant</option>
       <option value="cafes">Cafe</option>
       <option value="grocery">Grocery Store</option>
@@ -352,7 +361,7 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
     </div>
     <div class="fg"><label>Course Title</label><input type="text" id="mkCTitle" placeholder="e.g. Intro to Computing"></div>
   </div>
-  <div class="fg"><label>Address</label><input type="text" id="mkAddr" placeholder="e.g. 237 Wooster St, New Haven" onblur="geocodeAddr()"></div>
+  <div class="fg"><label>Address</label><div style="display:flex;gap:4px"><input type="text" id="mkAddr" placeholder="e.g. 237 Wooster St, New Haven" style="flex:1"><button type="button" onclick="geocodeAddr()" style="padding:4px 10px;border:1.5px solid #ddd;border-radius:7px;background:#fff;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;color:var(--yb)">📍 Locate</button></div></div>
   <div class="fg"><label>Description</label><textarea id="mkDesc" placeholder="Short note..."></textarea></div>
   <div class="fg" id="contribGrp" style="display:none"><label>Shared By (optional)</label><input type="text" id="mkContrib" placeholder="e.g. Dalton Fowler, Political Science"></div>
   <div class="factions" id="mkActions">
@@ -379,6 +388,19 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
 </div>
 </div>
 
+<!-- List view -->
+<div class="fov" id="listOv">
+<div class="fcard" style="width:420px;max-width:96vw;max-height:80vh;display:flex;flex-direction:column">
+  <h3>All Locations</h3>
+  <div class="fg" style="margin-bottom:8px"><input type="text" id="listSearch" placeholder="Search by name..." oninput="filterList()"></div>
+  <div class="fg" style="margin-bottom:8px"><select id="listCatFilter" onchange="filterList()" style="font-size:11px">
+    <option value="all">All Categories</option>
+  </select></div>
+  <div id="listBody" style="flex:1;overflow-y:auto;max-height:50vh"></div>
+  <div class="factions"><button class="fs" onclick="document.getElementById('listOv').classList.remove('on')">Close</button></div>
+</div>
+</div>
+
 <!-- Context menu -->
 <div class="ctx" id="ctx">
   <div class="ctx-i" onclick="ctxAdd()"><span>📍</span> Add location here</div>
@@ -391,7 +413,7 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
 // =====================================================
 // CONFIG
 // =====================================================
-const VIEWER_PW_HASH='b00eca9d282c8484366c46ca1bfd82aa3af2bdfe8b0eabe2b2e5c801582f9a78';
+const VIEWER_PW_HASH='0b2191c7c9217b51cf5f4bd6974b63ffb522faa4c1fa9bea005fcff12b044441';
 const ADMIN_PIN_HASH='35a64a987ea11e209891a2b8540de183c4fab99605a46ec67b7df8db5aee522a';
 const ACCESS_LOG_WEBHOOK='';
 const LAST_UPDATED='April 19, 2026';
@@ -421,18 +443,20 @@ const SHEET_URLS={
   shuttle_routes:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=600234696&single=true&output=csv',
   noise_zones:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=717531311&single=true&output=csv',
   walking_routes:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=272395583&single=true&output=csv',
-  gyms:'',
+  gyms:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLx72U-YVyuYolbyGCo9NDFLWhBSXwh2t24x4y2W0-eUQu_nKhp8OxeqOViob8TVv7mrawcjp-orEo/pub?gid=710763990&single=true&output=csv',
 };
 
 document.getElementById('lastUpdated').textContent=LAST_UPDATED;
 
 const CATS=['students','classes','food','grocery','bars','daycare','res_colleges','study','cafes','hotels','parks','gyms'];
-const LABELS={students:'Housing',classes:'Class',food:'Restaurant',grocery:'Grocery',bars:'Bar',daycare:'Daycare',res_colleges:'Residential College',study:'Study Location',cafes:'Cafe',hotels:'Hotel / Airbnb',parks:'Park / Playground',gyms:'Gym'};
+const LABELS={students:'Housing',classes:'Class',food:'Restaurant',grocery:'Grocery',bars:'Bar',daycare:'Daycare',res_colleges:'Residential College',study:'Quiet Study',cafes:'Cafe',hotels:'Hotel / Airbnb',parks:'Park / Playground',gyms:'Gym'};
 const EMOJIS={students:'🏠',classes:'📖',food:'🍽️',grocery:'🛒',bars:'🍸',daycare:'🧒',res_colleges:'🏛️',study:'📝',cafes:'☕',hotels:'🏨',parks:'🌳',gyms:'🏋️'};
-const CONTRIB_CATS=['food','cafes','bars','hotels'];
+const CONTRIB_CATS=['food','cafes','bars','hotels','grocery','gyms'];
 
 const DATA={};CATS.forEach(c=>DATA[c]=[]);
 const SHUTTLES=[],NOISE_ZONES=[],WALKS=[];
+const shuttleRouteLayers={};// name -> L.layerGroup
+const shuttleStopRoutes={};// "lat,lng" -> [route names]
 
 // =====================================================
 // GATE
@@ -464,11 +488,15 @@ async function tryAccess(){
   if(!document.getElementById('gateAgree').checked){document.getElementById('gateErr').textContent='Please agree to the ground rules.';return}
   const pw=document.getElementById('gatePw').value;
   if(!pw){document.getElementById('gateErr').textContent='Enter the access password.';return}
-  if(await sha256(pw)!==VIEWER_PW_HASH){document.getElementById('gateErr').textContent='Incorrect password. This attempt has been logged.';document.getElementById('gatePw').value='';await logAccess(false);return}
-  await logAccess(true);
+  const btn=document.getElementById('gateGo');
+  btn.textContent='Unlocking...';btn.disabled=true;
+  if(await sha256(pw)!==VIEWER_PW_HASH){btn.textContent='Enter Map';btn.disabled=false;document.getElementById('gateErr').textContent='Incorrect password. This attempt has been logged.';document.getElementById('gatePw').value='';logAccess(false);return}
+  // Show map immediately — don't wait for logging
   document.getElementById('gate').classList.add('hidden');
   document.getElementById('app').classList.add('on');
   setTimeout(()=>map.invalidateSize(),100);
+  // Log in background (non-blocking)
+  logAccess(true);
 }
 
 // =====================================================
@@ -566,7 +594,7 @@ function addToMap(cat,item){
     if(dept){allDepts.add(dept);rebuildDeptFilter()}
     // Also add subject/alternate codes to filter
     if(item.subject){
-      const altCodes=item.subject.split(/[,;\/]\s*/).map(s=>s.trim().toUpperCase()).filter(s=>s);
+      const altCodes=item.subject.split(/[,;\/]\s*/).map(s=>s.trim().split(/\s+/)[0].toUpperCase()).filter(s=>s);
       altCodes.forEach(ac=>{if(ac&&ac!==dept){allDepts.add(ac)}});
       rebuildDeptFilter();
     }
@@ -649,8 +677,9 @@ function filterDept(){
   let visCount=0;
   classMarkers.forEach(cm=>{
     const item=registry[cm.id]?registry[cm.id].item:null;
-    const altCodes=item&&item.subject?item.subject.split(/[,;\/]\s*/).map(s=>s.trim().toUpperCase()):[];
-    const matches=d==='all'||cm.dept===d||altCodes.includes(d);
+    // Extract just dept codes from alt code strings (e.g. "ENGL 2810" -> "ENGL")
+    const altDepts=item&&item.subject?item.subject.split(/[,;\/]\s*/).map(s=>s.trim().split(/\s+/)[0].toUpperCase()).filter(s=>s):[];
+    const matches=d==='all'||cm.dept===d||altDepts.includes(d);
     if(matches){if(!layers.classes.hasLayer(cm.marker))layers.classes.addLayer(cm.marker);visCount++}
     else layers.classes.removeLayer(cm.marker);
   });
@@ -709,6 +738,56 @@ function collectAltCodes(){
   return alts.join(', ');
 }
 
+function addShuttleRoute(route){
+  SHUTTLES.push(route);
+  const coords=route.stops.map(s=>[s.lat,s.lng]);
+  const rLayer=L.layerGroup();
+  shuttleRouteLayers[route.name]=rLayer;
+
+  L.polyline(coords,{color:route.color,weight:4,opacity:.8,dashArray:'8 6'})
+    .bindPopup(`<strong>${route.name}</strong><div class="pcat" style="color:${route.color}">Shuttle Route</div><div>${route.desc||''}</div>`)
+    .addTo(rLayer);
+
+  route.stops.forEach(s=>{
+    if(s.isStop){
+      const key=s.lat.toFixed(4)+','+s.lng.toFixed(4);
+      if(!shuttleStopRoutes[key])shuttleStopRoutes[key]=[];
+      if(!shuttleStopRoutes[key].includes(route.name))shuttleStopRoutes[key].push(route.name);
+      const m=L.marker([s.lat,s.lng],{icon:stopIcon()}).addTo(rLayer);
+      m.bindPopup(function(){
+        const routes=shuttleStopRoutes[key]||[];
+        const list=routes.map(r=>{
+          const rt=SHUTTLES.find(x=>x.name===r);
+          return `<div style="font-size:11px;margin:2px 0"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${rt?rt.color:'#999'};margin-right:6px"></span>${r}</div>`;
+        }).join('');
+        return `<strong>Bus Stop</strong><div class="pcat" style="color:#8b6bae">Routes serving this stop</div>${list}`;
+      });
+    }
+  });
+
+  rLayer.addTo(layers.shuttle);
+  buildShuttleToggles();
+}
+
+function buildShuttleToggles(){
+  const container=document.getElementById('shuttleRouteToggles');
+  container.innerHTML='';
+  SHUTTLES.forEach(route=>{
+    const div=document.createElement('div');
+    div.className='ltog';
+    div.style.cssText='padding:3px 0;font-size:11px';
+    div.dataset.shuttleRoute=route.name;
+    div.innerHTML=`<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${route.color};flex-shrink:0"></span><span class="ll" style="font-size:11px">${route.name}</span>`;
+    div.onclick=function(){
+      const off=div.classList.toggle('off');
+      const rl=shuttleRouteLayers[route.name];
+      if(off)layers.shuttle.removeLayer(rl);
+      else rl.addTo(layers.shuttle);
+    };
+    container.appendChild(div);
+  });
+}
+
 // =====================================================
 // DATA LOADING — all sheets in parallel
 // =====================================================
@@ -742,7 +821,10 @@ async function loadAll(){
     else if(key==='shuttle_routes'){
       const rg={};
       rows.forEach(row=>{if(skipRow(row))return;const n=row.route_name,lat=parseFloat(row.stop_lat),lng=parseFloat(row.stop_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!rg[n])rg[n]={name:n,color:row.color||'#2196F3',desc:row.desc||'',stops:[]};if(row.color)rg[n].color=row.color;if(row.desc)rg[n].desc=row.desc;const isStop=row.is_stop!==undefined?(row.is_stop.toLowerCase()!=='no'&&row.is_stop!=='0'&&row.is_stop.toLowerCase()!=='false'):true;rg[n].stops.push({order:parseInt(row.stop_order)||0,lat,lng,isStop})});
-      Object.values(rg).forEach(route=>{route.stops.sort((a,b)=>a.order-b.order);const coords=route.stops.map(s=>[s.lat,s.lng]);SHUTTLES.push(route);L.polyline(coords,{color:route.color,weight:4,opacity:.8,dashArray:'8 6'}).bindPopup(`<strong>${route.name}</strong><div class="pcat" style="color:#8b6bae">Shuttle Route</div><div>${route.desc}</div>`).addTo(layers.shuttle);route.stops.forEach(s=>{if(s.isStop)L.marker([s.lat,s.lng],{icon:stopIcon()}).addTo(layers.shuttle)})});
+      Object.values(rg).forEach(route=>{
+        route.stops.sort((a,b)=>a.order-b.order);
+        addShuttleRoute(route);
+      });
       document.getElementById('c-shuttle').textContent=SHUTTLES.length;
     }
     else if(key==='noise_zones'){
@@ -753,7 +835,7 @@ async function loadAll(){
     else if(key==='walking_routes'){
       const wg={};
       rows.forEach(row=>{if(skipRow(row))return;const n=row.route_name,lat=parseFloat(row.point_lat||row.stop_lat),lng=parseFloat(row.point_lng||row.stop_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!wg[n])wg[n]={name:n,color:row.color||'#27ae60',desc:row.desc||'',pts:[]};if(row.color)wg[n].color=row.color;if(row.desc)wg[n].desc=row.desc;wg[n].pts.push({order:parseInt(row.point_order||row.stop_order)||0,lat,lng})});
-      Object.values(wg).forEach(w=>{w.pts.sort((a,b)=>a.order-b.order);const coords=w.pts.map(p=>[p.lat,p.lng]);WALKS.push({...w,coords});L.polyline(coords,{color:w.color,weight:3,opacity:.7}).bindPopup(`<strong>${w.name}</strong><div class="pcat" style="color:${w.color}">Walking / Running Route</div><div>${w.desc}</div>`).addTo(layers.walking)});
+      Object.values(wg).forEach(w=>{w.pts.sort((a,b)=>a.order-b.order);const coords=w.pts.map(p=>[p.lat,p.lng]);WALKS.push({...w,coords});L.polyline(coords,{color:w.color,weight:3,opacity:.7}).bindPopup(`<strong>${w.name}</strong><div class="pcat" style="color:${w.color}">Walking / Running / Cycling Route</div><div>${w.desc}</div>`).addTo(layers.walking)});
       document.getElementById('c-walking').textContent=WALKS.length;
     }
   });
@@ -1056,18 +1138,15 @@ function saveZone(){
     writeBack({action:'add_zone',zone:{name,level,desc,coords}});
   }else if(drawMode==='route'){
     const col=document.getElementById('routeColor').value;
-    const coords=drawPoints.map(p=>[p.lat,p.lng]);
-    const route={name,color:col,desc,coords,stops:[...drawPoints]};
-    SHUTTLES.push(route);
-    L.polyline(coords,{color:col,weight:4,opacity:.8,dashArray:'8 6'}).bindPopup(`<strong>${name}</strong><div class="pcat" style="color:#8b6bae">Shuttle Route</div><div>${desc}</div>`).addTo(layers.shuttle);
-    drawPoints.forEach(p=>{if(p.isStop)L.marker([p.lat,p.lng],{icon:stopIcon()}).addTo(layers.shuttle)});
+    const route={name,color:col,desc,stops:drawPoints.map(p=>({lat:p.lat,lng:p.lng,isStop:p.isStop,order:0}))};
+    addShuttleRoute(route);
     document.getElementById('c-shuttle').textContent=SHUTTLES.length;
     writeBack({action:'add_route',route:{name,color:col,desc,stops:drawPoints.map(p=>({lat:p.lat,lng:p.lng,isStop:p.isStop}))}});
   }else{
     const col=document.getElementById('routeColor').value;
     const coords=drawPoints.map(p=>[p.lat,p.lng]);
     WALKS.push({name,color:col,desc,coords});
-    L.polyline(coords,{color:col,weight:3,opacity:.7}).bindPopup(`<strong>${name}</strong><div class="pcat" style="color:${col}">Walking / Running Route</div><div>${desc}</div>`).addTo(layers.walking);
+    L.polyline(coords,{color:col,weight:3,opacity:.7}).bindPopup(`<strong>${name}</strong><div class="pcat" style="color:${col}">Walking / Running / Cycling Route</div><div>${desc}</div>`).addTo(layers.walking);
     document.getElementById('c-walking').textContent=WALKS.length;
     writeBack({action:'add_walk',route:{name,color:col,desc,stops:drawPoints.map(p=>({lat:p.lat,lng:p.lng}))}});
   }
@@ -1083,8 +1162,45 @@ function exportData(){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='ewss_map_data.json';a.click();
 }
 
+// =====================================================
+// LIST VIEW
+// =====================================================
+function showListView(){
+  const sel=document.getElementById('listCatFilter');
+  sel.innerHTML='<option value="all">All Categories</option>';
+  CATS.forEach(c=>{if(DATA[c].length)sel.innerHTML+=`<option value="${c}">${LABELS[c]||c}</option>`});
+  filterList();
+  document.getElementById('listOv').classList.add('on');
+  document.getElementById('listSearch').focus();
+}
+
+function filterList(){
+  const q=document.getElementById('listSearch').value.toLowerCase();
+  const cat=document.getElementById('listCatFilter').value;
+  const body=document.getElementById('listBody');
+  let html='';
+  CATS.forEach(c=>{
+    if(cat!=='all'&&c!==cat)return;
+    DATA[c].forEach(item=>{
+      if(q&&!item.name.toLowerCase().includes(q)&&!(item.desc||'').toLowerCase().includes(q)&&!(item.address||'').toLowerCase().includes(q))return;
+      const emoji=EMOJIS[c]||'📍';
+      const desc=item.address||item.desc||'';
+      html+=`<div class="list-item" onclick="flyToItem(${item._id})"><span class="li-emoji">${emoji}</span><div class="li-info"><div class="li-name">${item.name}</div><div class="li-desc">${desc}</div></div><span class="li-cat">${LABELS[c]||c}</span></div>`;
+    });
+  });
+  body.innerHTML=html||'<div style="padding:16px;text-align:center;color:#aaa;font-size:12px">No locations found.</div>';
+}
+
+function flyToItem(id){
+  const r=registry[id];if(!r)return;
+  document.getElementById('listOv').classList.remove('on');
+  if(mobPanelOpen)toggleMobilePanel();
+  map.setView([r.item.lat,r.item.lng],17);
+  setTimeout(()=>r.marker.openPopup(),300);
+}
+
 // Escape key
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){hidePin();hideMk();if(drawMode!=='idle')cancelDraw();document.getElementById('zoneOv').classList.remove('on')}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){hidePin();hideMk();if(drawMode!=='idle')cancelDraw();document.getElementById('zoneOv').classList.remove('on');document.getElementById('listOv').classList.remove('on')}});
 
 // =====================================================
 // MOBILE PANEL TOGGLE
