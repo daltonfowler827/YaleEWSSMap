@@ -186,7 +186,7 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
 
 @media(max-width:700px){
   /* Panel becomes bottom sheet */
-  .panel{position:fixed;top:auto;left:0;bottom:44px;right:0;width:100%;border-radius:18px 18px 0 0;max-height:60vh;transform:translateY(100%);transition:transform .3s ease;z-index:1002;flex-direction:column;box-sizing:border-box}
+  .panel{position:fixed;top:auto;left:0;bottom:44px;right:0;width:100%;border-radius:18px 18px 0 0;max-height:60vh;transform:translateY(calc(100% + 44px));transition:transform .3s ease;z-index:1002;flex-direction:column;box-sizing:border-box}
   .panel.mob-open{transform:translateY(0)}
   .panel-hd{padding:6px 14px 6px;position:sticky;top:0;z-index:1}
   .panel-hd h1{font-size:14px}
