@@ -247,7 +247,7 @@ body{font-family:'DM Sans',sans-serif;background:#e8e4de;overflow:hidden;height:
   <h1>EWSS Community Map</h1>
   <div class="gate-sub">Eli Whitney Students Society &middot; New Haven</div>
   <div class="gate-welcome">
-    Welcome! This map is a community resource built by and for Eli Whitney Students It is <strong>not</strong> provided by, affiliated with, or endorsed by Yale University. All information is crowd-sourced by fellow students and may not be completely accurate or up to date.
+    Welcome! This map is a community resource built by and for Eli Whitney Students. It is <strong>not</strong> provided by, affiliated with, or endorsed by Yale University. All information is crowd-sourced by fellow students and may not be completely accurate or up to date.
   </div>
   <div class="gate-terms">
     <h4>Quick Ground Rules</h4>
@@ -851,55 +851,56 @@ function buildShuttleToggles(){
 async function fetchSheet(url){try{const r=await fetch(url);if(!r.ok)throw 0;return parseCSV(await r.text())}catch(_){return[]}}
 
 async function loadAll(){
-  // Fetch ALL sheets simultaneously
   const allKeys=[...CATS.filter(c=>SHEET_URLS[c])];
   if(SHEET_URLS.shuttle_routes)allKeys.push('shuttle_routes');
   if(SHEET_URLS.noise_zones)allKeys.push('noise_zones');
   if(SHEET_URLS.walking_routes)allKeys.push('walking_routes');
 
-  const results=await Promise.all(allKeys.map(async key=>{
-    const rows=await fetchSheet(SHEET_URLS[key]);
-    return{key,rows};
-  }));
-
-  results.forEach(({key,rows})=>{
-    if(CATS.includes(key)){
-      rows.forEach(row=>{
-        if(skipRow(row))return;
-        const lat=parseFloat(row.lat),lng=parseFloat(row.lng);
-        if(isNaN(lat)||isNaN(lng))return;
-        const item={name:row.name||'',lat,lng,desc:row.desc||'',address:row.address||'',subject:row.subject||'',contributor:row.contributor||''};
-        if(key==='classes'){item.dept=(row.name||'').split(/\s+/)[0].toUpperCase();const parts=(row.name||'').match(/^(\S+)\s+(\S+)/);if(parts){item.dept=parts[1].toUpperCase();item.num=parts[2]}item.courseTitle=(row.name||'').replace(/^\S+\s+\S+\s*[—–-]?\s*/,'');}
-        DATA[key].push(item);
-        addToMap(key,item);
-      });
-      const c=document.getElementById('c-'+key);if(c)c.textContent=DATA[key].length;
-    }
-    else if(key==='shuttle_routes'){
-      const rg={};
-      rows.forEach(row=>{if(skipRow(row))return;const n=row.route_name,lat=parseFloat(row.stop_lat),lng=parseFloat(row.stop_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!rg[n])rg[n]={name:n,color:row.color||'#2196F3',desc:row.desc||'',stops:[]};if(row.color)rg[n].color=row.color;if(row.desc)rg[n].desc=row.desc;const isStop=row.is_stop!==undefined?(row.is_stop.toLowerCase()!=='no'&&row.is_stop!=='0'&&row.is_stop.toLowerCase()!=='false'):true;rg[n].stops.push({order:parseInt(row.stop_order)||0,lat,lng,isStop})});
-      Object.values(rg).forEach(route=>{
-        route.stops.sort((a,b)=>a.order-b.order);
-        addShuttleRoute(route);
-      });
-      document.getElementById('c-shuttle').textContent=SHUTTLES.length;
-    }
-    else if(key==='noise_zones'){
-      const zg={};
-      rows.forEach(row=>{if(skipRow(row))return;const n=row.zone_name,lat=parseFloat(row.vertex_lat),lng=parseFloat(row.vertex_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!zg[n])zg[n]={name:n,level:row.level||'medium',desc:row.desc||'',verts:[]};if(row.level)zg[n].level=row.level;if(row.desc)zg[n].desc=row.desc;zg[n].verts.push({order:parseInt(row.vertex_order)||0,lat,lng})});
-      Object.values(zg).forEach(z=>{z.verts.sort((a,b)=>a.order-b.order);const coords=z.verts.map(v=>[v.lat,v.lng]);const zone={name:z.name,level:z.level,desc:z.desc,coords};NOISE_ZONES.push(zone);addNoiseToMap(zone)});
-    }
-    else if(key==='walking_routes'){
-      const wg={};
-      rows.forEach(row=>{if(skipRow(row))return;const n=row.route_name,lat=parseFloat(row.point_lat||row.stop_lat),lng=parseFloat(row.point_lng||row.stop_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!wg[n])wg[n]={name:n,color:row.color||'#27ae60',desc:row.desc||'',pts:[]};if(row.color)wg[n].color=row.color;if(row.desc)wg[n].desc=row.desc;wg[n].pts.push({order:parseInt(row.point_order||row.stop_order)||0,lat,lng})});
-      Object.values(wg).forEach(w=>{w.pts.sort((a,b)=>a.order-b.order);const coords=w.pts.map(p=>[p.lat,p.lng]);WALKS.push({...w,coords});L.polyline(coords,{color:w.color,weight:3,opacity:.7}).bindPopup(`<strong>${w.name}</strong><div class="pcat" style="color:${w.color}">Walking / Running / Cycling Route</div><div>${w.desc}</div>`).addTo(layers.walking)});
-      document.getElementById('c-walking').textContent=WALKS.length;
-    }
-  });
+  // Fire all fetches, but process each individually as it resolves
+  const promises=allKeys.map(key=>
+    fetchSheet(SHEET_URLS[key]).then(rows=>processCategory(key,rows))
+  );
+  await Promise.all(promises);
 
   if(isAdmin)document.body.classList.add('admin-on');
   console.log('[Loaded]',Object.fromEntries(CATS.map(c=>[c,DATA[c].length])));
 }
+
+function processCategory(key,rows){
+  if(CATS.includes(key)){
+    rows.forEach(row=>{
+      if(skipRow(row))return;
+      const lat=parseFloat(row.lat),lng=parseFloat(row.lng);
+      if(isNaN(lat)||isNaN(lng))return;
+      const item={name:row.name||'',lat,lng,desc:row.desc||'',address:row.address||'',subject:row.subject||'',contributor:row.contributor||''};
+      if(key==='classes'){item.dept=(row.name||'').split(/\s+/)[0].toUpperCase();const parts=(row.name||'').match(/^(\S+)\s+(\S+)/);if(parts){item.dept=parts[1].toUpperCase();item.num=parts[2]}item.courseTitle=(row.name||'').replace(/^\S+\s+\S+\s*[—–-]?\s*/,'');}
+      DATA[key].push(item);
+      addToMap(key,item);
+    });
+    const c=document.getElementById('c-'+key);if(c)c.textContent=DATA[key].length;
+  }
+  else if(key==='shuttle_routes'){
+    const rg={};
+    rows.forEach(row=>{if(skipRow(row))return;const n=row.route_name,lat=parseFloat(row.stop_lat),lng=parseFloat(row.stop_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!rg[n])rg[n]={name:n,color:row.color||'#2196F3',desc:row.desc||'',stops:[]};if(row.color)rg[n].color=row.color;if(row.desc)rg[n].desc=row.desc;const isStop=row.is_stop!==undefined?(row.is_stop.toLowerCase()!=='no'&&row.is_stop!=='0'&&row.is_stop.toLowerCase()!=='false'):true;rg[n].stops.push({order:parseInt(row.stop_order)||0,lat,lng,isStop})});
+    Object.values(rg).forEach(route=>{
+      route.stops.sort((a,b)=>a.order-b.order);
+      addShuttleRoute(route);
+    });
+    document.getElementById('c-shuttle').textContent=SHUTTLES.length;
+  }
+  else if(key==='noise_zones'){
+    const zg={};
+    rows.forEach(row=>{if(skipRow(row))return;const n=row.zone_name,lat=parseFloat(row.vertex_lat),lng=parseFloat(row.vertex_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!zg[n])zg[n]={name:n,level:row.level||'medium',desc:row.desc||'',verts:[]};if(row.level)zg[n].level=row.level;if(row.desc)zg[n].desc=row.desc;zg[n].verts.push({order:parseInt(row.vertex_order)||0,lat,lng})});
+    Object.values(zg).forEach(z=>{z.verts.sort((a,b)=>a.order-b.order);const coords=z.verts.map(v=>[v.lat,v.lng]);const zone={name:z.name,level:z.level,desc:z.desc,coords};NOISE_ZONES.push(zone);addNoiseToMap(zone)});
+  }
+  else if(key==='walking_routes'){
+    const wg={};
+    rows.forEach(row=>{if(skipRow(row))return;const n=row.route_name,lat=parseFloat(row.point_lat||row.stop_lat),lng=parseFloat(row.point_lng||row.stop_lng);if(!n||isNaN(lat)||isNaN(lng))return;if(!wg[n])wg[n]={name:n,color:row.color||'#27ae60',desc:row.desc||'',pts:[]};if(row.color)wg[n].color=row.color;if(row.desc)wg[n].desc=row.desc;wg[n].pts.push({order:parseInt(row.point_order||row.stop_order)||0,lat,lng})});
+    Object.values(wg).forEach(w=>{w.pts.sort((a,b)=>a.order-b.order);const coords=w.pts.map(p=>[p.lat,p.lng]);WALKS.push({...w,coords});L.polyline(coords,{color:w.color,weight:3,opacity:.7}).bindPopup(`<strong>${w.name}</strong><div class="pcat" style="color:${w.color}">Walking / Running / Cycling Route</div><div>${w.desc}</div>`).addTo(layers.walking)});
+    document.getElementById('c-walking').textContent=WALKS.length;
+  }
+}
+
 loadAll();
 
 // =====================================================
